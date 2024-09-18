@@ -8,7 +8,7 @@ const sketch = (p) => {
   let colony;
   let ants = [];
   let pheromones = [];
-  let numAnts = 100; // Adjust as desired
+  let numAnts = 50; // Adjust as desired
 
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight);
