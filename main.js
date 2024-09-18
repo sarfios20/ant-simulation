@@ -1,17 +1,22 @@
+// main.js
+
 import p5 from 'p5';
 import Ant from './classes/Ant.js';
 
 const sketch = (p) => {
   let colony;
   let ants = [];
-  let numAnts = 50;
+  let numAnts = 100; // Adjust as desired
 
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight);
     colony = p.createVector(p.width / 2, p.height / 2);
 
+    // Create ant objects
     for (let i = 0; i < numAnts; i++) {
-      ants.push(new Ant(p, colony));
+      // Pass the ants array and p instance to each ant
+      let ant = new Ant(p, colony, ants);
+      ants.push(ant);
     }
   };
 
@@ -19,6 +24,7 @@ const sketch = (p) => {
     p.background(220);
     drawColony();
 
+    // Update and display ants
     for (let ant of ants) {
       ant.update();
       ant.display();
