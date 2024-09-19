@@ -5,7 +5,7 @@ export default class Pheromone {
     this.p = p;
     this.position = position.copy();
     this.type = type; // e.g., 'explore', 'food' (for future use)
-    this.strength = 255; // Initial strength (you can adjust)
+    this.strength = 1000; // Initial strength (you can adjust)
     this.decayRate = 1; // Amount by which strength decreases each frame
   }
 

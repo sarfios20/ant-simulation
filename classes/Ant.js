@@ -20,13 +20,13 @@ export default class Ant {
     randomSteerWeight = 1.0,
     avoidanceForceWeight = 1.5,
     pheromoneAvoidanceForceWeight = 3.0,
-    colonyAttractionForceWeight = 1.0
+    colonyAttractionForceWeight = 0.5
   ) {
     this.p = p; 
     this.position = position.copy();
     this.size = 5;
     this.speed = 1.5; 
-    this.perceptionRadius = 25;
+    this.perceptionRadius = 35;
     this.ants = ants; 
     this.pheromones = pheromones;
     this.colony = colony.copy();
@@ -84,68 +84,34 @@ export default class Ant {
     // Get avoidance vectors
     this.avoidanceForce = this.avoidOthers();
     this.pheromoneAvoidanceForce = this.avoidPheromones();
-
-    // Add a bias towards the colony
     this.colonyAttractionForce = this.attractToColony();
 
-    // Calculate magnitudes for analysis
-    let randomSteerMag = this.randomSteer.mag();
-    let avoidanceForceMag = this.avoidanceForce.mag();
-    let pheromoneAvoidanceForceMag = this.pheromoneAvoidanceForce.mag();
-    let colonyAttractionForceMag = this.colonyAttractionForce.mag();
+    // Normalize all forces to ensure equal contribution when magnitudes are similar
+    if (this.randomSteer.mag() > 0) this.randomSteer.normalize();
+    if (this.avoidanceForce.mag() > 0) this.avoidanceForce.normalize();
+    if (this.pheromoneAvoidanceForce.mag() > 0) this.pheromoneAvoidanceForce.normalize();
+    if (this.colonyAttractionForce.mag() > 0) this.colonyAttractionForce.normalize();
 
-    let totalForceMag =
-      randomSteerMag +
-      avoidanceForceMag +
-      pheromoneAvoidanceForceMag +
-      colonyAttractionForceMag;
+    // Apply the multipliers (weights) defined in the constructor after normalization
+    let weightedRandomSteer = this.randomSteer.copy().mult(this.randomSteerWeight);
+    let weightedAvoidanceForce = this.avoidanceForce.copy().mult(this.avoidanceForceWeight);
+    let weightedPheromoneAvoidanceForce = this.pheromoneAvoidanceForce.copy().mult(this.pheromoneAvoidanceForceWeight);
+    let weightedColonyAttractionForce = this.colonyAttractionForce.copy().mult(this.colonyAttractionForceWeight);
 
-    // Compute percentages
-    if (totalForceMag !== 0) {
-      this.forceContributions.randomSteerPercent =
-        (randomSteerMag / totalForceMag) * 100;
-      this.forceContributions.avoidanceForcePercent =
-        (avoidanceForceMag / totalForceMag) * 100;
-      this.forceContributions.pheromoneAvoidanceForcePercent =
-        (pheromoneAvoidanceForceMag / totalForceMag) * 100;
-      this.forceContributions.colonyAttractionForcePercent =
-        (colonyAttractionForceMag / totalForceMag) * 100;
-    }
-
-    // Log force values if enabled
-    if (Ant.logForceValues) {
-      console.log({
-        randomSteerMag: randomSteerMag.toFixed(2),
-        avoidanceForceMag: avoidanceForceMag.toFixed(2),
-        pheromoneAvoidanceForceMag: pheromoneAvoidanceForceMag.toFixed(2),
-        colonyAttractionForceMag: colonyAttractionForceMag.toFixed(2),
-        randomSteerPercent: this.forceContributions.randomSteerPercent.toFixed(1),
-        avoidanceForcePercent: this.forceContributions.avoidanceForcePercent.toFixed(1),
-        pheromoneAvoidanceForcePercent:
-          this.forceContributions.pheromoneAvoidanceForcePercent.toFixed(1),
-        colonyAttractionForcePercent:
-          this.forceContributions.colonyAttractionForcePercent.toFixed(1),
-      });
-    }
-
-    // Apply weights to the forces
+    // Calculate total steering by summing all forces
     let steering = this.p.createVector(0, 0);
-    steering.add(this.randomSteer.copy().mult(this.randomSteerWeight));
-    steering.add(this.avoidanceForce.copy().mult(this.avoidanceForceWeight));
-    steering.add(
-      this.pheromoneAvoidanceForce.copy().mult(this.pheromoneAvoidanceForceWeight)
-    );
-    steering.add(
-      this.colonyAttractionForce.copy().mult(this.colonyAttractionForceWeight)
-    );
+    steering.add(weightedRandomSteer);
+    steering.add(weightedAvoidanceForce);
+    steering.add(weightedPheromoneAvoidanceForce);
+    steering.add(weightedColonyAttractionForce);
 
-    // Limit the steering force
+    // Limit the steering force (optional, if needed)
     steering.setMag(this.speed);
 
     // Update velocity and position
     this.velocity = steering.copy();
     this.position.add(this.velocity);
-  }
+}
 
   avoidOthers() {
     let total = 0;
@@ -192,7 +158,7 @@ export default class Ant {
           let diff = p5.Vector.sub(this.position, pheromone.position);
           diff.normalize();
           diff.div(d); // Weight by distance
-          diff.mult(pheromone.strength / 255); // Weight by pheromone strength
+          diff.mult(pheromone.strength / 1000); // Weight by pheromone strength
           steering.add(diff);
           total++;
         }
