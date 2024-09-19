@@ -15,9 +15,10 @@ export default class Ant {
     randomSteerWeight = 1.0,
     avoidanceForceWeight = 1.5,
     pheromoneAvoidanceForceWeight = 3.0,
-    colonyAttractionForceWeight = 0.5
+    colonyAttractionForceWeight = 0.5,
+    explorationTimeLimit = 10000 // Max time (in ms) an ant can explore without finding food
   ) {
-    this.p = p;
+    this.p = p;  // Reference to p5.js instance
     this.position = position.copy();
     this.size = 5;
     this.speed = 1.5;
@@ -48,10 +49,19 @@ export default class Ant {
 
     this.targetFood = null;
     this.returning = false;
-    this.followingFoodPheromone = false; // Following food pheromone back to food
+    this.followingFoodPheromone = false;
+
+    // Track if the ant found food or not
+    this.foundFood = false;
+
+    // Exploration timer
+    this.explorationStartTime = this.p.millis(); // Time when the ant starts exploring
+    this.explorationTimeLimit = explorationTimeLimit; // Time limit for exploration
   }
 
   update() {
+    this.checkExplorationTime(); // Check if the ant has been exploring too long
+
     this.move();
     this.edges();
 
@@ -60,6 +70,14 @@ export default class Ant {
     if (this.depositCounter >= this.depositInterval) {
       this.depositPheromone();
       this.depositCounter = 0;
+    }
+  }
+
+  checkExplorationTime() {
+    if (!this.returning && this.p.millis() - this.explorationStartTime > this.explorationTimeLimit) {
+      this.returning = true; // Switch to return mode
+      this.targetFood = null; // Clear the food target if any
+      this.foundFood = false; // Mark that the ant is returning without food
     }
   }
 
@@ -99,6 +117,7 @@ export default class Ant {
     if (d < this.size / 2 + this.targetFood.size / 2) {
       this.returning = true; // Switch to return mode
       this.targetFood = null; // Clear the food target
+      this.foundFood = true;  // Mark that the ant found food
     }
   }
 
@@ -118,11 +137,9 @@ export default class Ant {
     }
 
     if (weakestFoodPheromone) {
-      // Follow the weakest food pheromone
       let directionToPheromone = p5.Vector.sub(weakestFoodPheromone.position, this.position);
       directionToPheromone.setMag(this.speed);
 
-      // Add randomness to the movement
       let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
       let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
 
@@ -130,12 +147,10 @@ export default class Ant {
       this.position.add(this.velocity);
       this.noiseOffset += 0.01;
 
-      // Check for food while following the pheromone
-      this.checkForFood();
+      this.checkForFood(); // Check for food while following the pheromone
     } else {
-      // No food pheromones detected, return to random movement
       this.followingFoodPheromone = false;
-      this.standardMovement();
+      this.standardMovement(); // No food pheromone detected, return to random movement
     }
   }
 
@@ -182,7 +197,6 @@ export default class Ant {
   }
 
   standardMovement() {
-    // Detect food pheromones during exploration
     let detectedFoodPheromone = this.detectFoodPheromone();
     if (detectedFoodPheromone) {
       this.followingFoodPheromone = true;
@@ -230,7 +244,7 @@ export default class Ant {
   }
 
   depositPheromone() {
-    let pheromoneType = this.returning ? 'food' : 'explore';
+    let pheromoneType = this.returning && this.foundFood ? 'food' : 'explore';
     let pheromone = new Pheromone(this.p, this.position, pheromoneType);
     this.pheromones.push(pheromone);
   }
