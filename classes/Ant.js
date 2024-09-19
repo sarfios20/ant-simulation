@@ -118,8 +118,8 @@ export default class Ant {
       this.position.add(this.velocity);
 
       if (distToColony < this.size / 2 + 15) {
-        alert("Ant returned to colony!");
-        this.returning = false; // Switch back to exploration mode
+        // De-spawn the ant when it reaches the colony
+        this.ants.splice(this.ants.indexOf(this), 1); // Remove the ant from the array
       }
     } else {
       let weakestPheromone = null;

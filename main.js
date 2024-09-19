@@ -3,30 +3,26 @@
 import p5 from 'p5';
 import Ant from './classes/Ant.js';
 import Pheromone from './classes/Pheromone.js'; // Import Pheromone class
-import Food from './classes/Food.js'; // Import Food class
 
 const sketch = (p) => {
-  let colony; // Colony will be a p5.Vector
+  let colony;
   let ants = [];
   let pheromones = [];
-  let foodItems = []; // Array to store food objects
-  let numAnts = 10; // Adjust as desired
+  let foodItems = [];
+  let numAnts = 0; // Start with 0 ants
+  let antSpawnInterval = 2000; // Milliseconds (2 seconds)
+  let lastSpawnTime = 0;
 
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight);
-
-    // Make sure colony is initialized as a p5.Vector
     colony = p.createVector(p.width / 2, p.height / 2); // Colony position
 
-    // Create ant objects and pass the colony vector
-    for (let i = 0; i < numAnts; i++) {
-      let ant = new Ant(p, colony, ants, pheromones, foodItems, colony.copy()); // Pass colony as p5.Vector
-      ants.push(ant);
-    }
-
-    // Create some initial food at random positions
-    for (let i = 0; i < 5; i++) {
-      let food = new Food(p, p.createVector(p.random(p.width), p.random(p.height)));
+    // Add multiple green food items at random positions
+    for (let i = 0; i < 5; i++) {  // Add 5 food items (adjust as needed)
+      let food = {
+        position: p.createVector(p.random(p.width), p.random(p.height)),
+        size: 15 // Food size (adjust as needed)
+      };
       foodItems.push(food);
     }
   };
@@ -34,6 +30,13 @@ const sketch = (p) => {
   p.draw = () => {
     p.background(220);
     drawColony();
+
+    // Spawn new ants at regular intervals
+    if (p.millis() - lastSpawnTime > antSpawnInterval) {
+      let ant = new Ant(p, colony, ants, pheromones, foodItems, colony); // Pass colony position to ants
+      ants.push(ant);
+      lastSpawnTime = p.millis();
+    }
 
     // Update and display pheromones
     for (let i = pheromones.length - 1; i >= 0; i--) {
@@ -47,15 +50,17 @@ const sketch = (p) => {
       }
     }
 
-    // Update and display food
-    for (let food of foodItems) {
-      food.display();
-    }
-
     // Update and display ants
     for (let ant of ants) {
       ant.update();
       ant.display();
+    }
+
+    // Display food items in green
+    for (let food of foodItems) {
+      p.fill(0, 255, 0); // Green color for food
+      p.noStroke();
+      p.ellipse(food.position.x, food.position.y, food.size, food.size);
     }
   };
 
@@ -68,12 +73,6 @@ const sketch = (p) => {
     p.textSize(12);
     p.text('Colony', colony.x, colony.y);
   }
-
-  // Add new food on mouse press
-  p.mousePressed = () => {
-    let food = new Food(p, p.createVector(p.mouseX, p.mouseY));
-    foodItems.push(food);
-  };
 
   p.windowResized = () => {
     p.resizeCanvas(p.windowWidth, p.windowHeight);
