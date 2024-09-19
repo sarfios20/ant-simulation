@@ -50,6 +50,7 @@ export default class Ant {
 
     // Target food (null initially)
     this.targetFood = null;
+    this.returning = false; // Indicates if the ant is in return mode
   }
 
   update() {
@@ -65,15 +66,20 @@ export default class Ant {
   }
 
   move() {
-    // Check for food first
-    this.checkForFood();
-
-    if (this.targetFood) {
-      // If there's target food, move towards it
-      this.moveToFood();
+    if (this.returning) {
+      // In return mode, follow pheromones back to the colony
+      this.returnToColony();
     } else {
-      // Standard movement logic using forces
-      this.standardMovement();
+      // Check for food first
+      this.checkForFood();
+
+      if (this.targetFood) {
+        // If there's target food, move towards it
+        this.moveToFood();
+      } else {
+        // Standard movement logic using forces
+        this.standardMovement();
+      }
     }
   }
 
@@ -95,8 +101,58 @@ export default class Ant {
 
     let d = this.p.dist(this.position.x, this.position.y, this.targetFood.position.x, this.targetFood.position.y);
     if (d < this.size / 2 + this.targetFood.size / 2) {
-      alert("Ant reached food!");
-      this.targetFood = null; // Clear target after reaching food
+      // When the ant reaches the food, switch to return mode
+      this.returning = true;
+      this.targetFood = null; // Clear the food target
+    }
+  }
+
+  returnToColony() {
+    let distToColony = this.p.dist(this.position.x, this.position.y, this.colony.x, this.colony.y);
+
+    // If the colony is within the perception radius, go straight to it
+    if (distToColony < this.perceptionRadius) {
+      let directionToColony = p5.Vector.sub(this.colony, this.position);
+      directionToColony.setMag(this.speed);
+      this.velocity = directionToColony;
+      this.position.add(this.velocity);
+
+      if (distToColony < this.size / 2 + 15) {
+        alert("Ant returned to colony!");
+        this.returning = false; // Switch back to exploration mode
+      }
+    } else {
+      let weakestPheromone = null;
+      let weakestStrength = Infinity;
+
+      // Find the weakest pheromone within perception range
+      for (let pheromone of this.pheromones) {
+        let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
+        if (d < this.perceptionRadius && pheromone.type === 'explore') {
+          if (pheromone.strength < weakestStrength) {
+            weakestStrength = pheromone.strength;
+            weakestPheromone = pheromone;
+          }
+        }
+      }
+
+      if (weakestPheromone) {
+        // Follow the weakest pheromone (indicating it's closer to the colony)
+        let directionToPheromone = p5.Vector.sub(weakestPheromone.position, this.position);
+        directionToPheromone.setMag(this.speed);
+
+        // Add some noise for randomness
+        let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
+        let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
+
+        // Combine direction and noise
+        this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
+        this.position.add(this.velocity);
+        this.noiseOffset += 0.01;
+      } else {
+        // If no pheromone found, move randomly
+        this.standardMovement();
+      }
     }
   }
 
