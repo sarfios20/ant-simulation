@@ -3,21 +3,31 @@
 import p5 from 'p5';
 import Ant from './classes/Ant.js';
 import Pheromone from './classes/Pheromone.js'; // Import Pheromone class
+import Food from './classes/Food.js'; // Import Food class
 
 const sketch = (p) => {
-  let colony;
+  let colony; // Colony will be a p5.Vector
   let ants = [];
   let pheromones = [];
+  let foodItems = []; // Array to store food objects
   let numAnts = 10; // Adjust as desired
 
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight);
+
+    // Make sure colony is initialized as a p5.Vector
     colony = p.createVector(p.width / 2, p.height / 2); // Colony position
 
-    // Create ant objects
+    // Create ant objects and pass the colony vector
     for (let i = 0; i < numAnts; i++) {
-      let ant = new Ant(p, colony, ants, pheromones, colony); // Pass colony position to ants
+      let ant = new Ant(p, colony, ants, pheromones, foodItems, colony.copy()); // Pass colony as p5.Vector
       ants.push(ant);
+    }
+
+    // Create some initial food at random positions
+    for (let i = 0; i < 5; i++) {
+      let food = new Food(p, p.createVector(p.random(p.width), p.random(p.height)));
+      foodItems.push(food);
     }
   };
 
@@ -37,6 +47,11 @@ const sketch = (p) => {
       }
     }
 
+    // Update and display food
+    for (let food of foodItems) {
+      food.display();
+    }
+
     // Update and display ants
     for (let ant of ants) {
       ant.update();
@@ -53,6 +68,12 @@ const sketch = (p) => {
     p.textSize(12);
     p.text('Colony', colony.x, colony.y);
   }
+
+  // Add new food on mouse press
+  p.mousePressed = () => {
+    let food = new Food(p, p.createVector(p.mouseX, p.mouseY));
+    foodItems.push(food);
+  };
 
   p.windowResized = () => {
     p.resizeCanvas(p.windowWidth, p.windowHeight);
