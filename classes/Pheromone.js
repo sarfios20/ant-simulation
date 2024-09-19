@@ -4,28 +4,25 @@ export default class Pheromone {
   constructor(p, position, type) {
     this.p = p;
     this.position = position.copy();
-    this.type = type; // e.g., 'explore', 'food' (for future use)
-    this.strength = 1000; // Initial strength (you can adjust)
-    this.decayRate = 1; // Amount by which strength decreases each frame
+    this.type = type; // 'explore' for exploring pheromones, 'food' for food pheromones
+    this.strength = 1000; // Initial strength
+    this.decayRate = 1; // Decay over time
   }
 
   update() {
-    // Reduce strength over time
     this.strength -= this.decayRate;
   }
 
   isWeak() {
-    // Check if the pheromone is too weak to keep
     return this.strength <= 0;
   }
 
   display() {
-    // Display the pheromone as a small circle
     this.p.noStroke();
     if (this.type === 'explore') {
-      this.p.fill(0, 0, 255, this.strength); // Blue color for exploration pheromones
+      this.p.fill(0, 0, 255, this.strength); // Blue for explore pheromones
     } else if (this.type === 'food') {
-      this.p.fill(255, 0, 0, this.strength); // Red color for food pheromones
+      this.p.fill(255, 0, 0, this.strength); // Red for food pheromones
     }
     this.p.ellipse(this.position.x, this.position.y, 4, 4); // Small circle
   }

@@ -10,7 +10,7 @@ export default class Ant {
     ants,
     pheromones,
     foodItems,
-    colony, // Colony should be a p5.Vector
+    colony, 
     colonyAttractionStrength = 0.1,
     randomSteerWeight = 1.0,
     avoidanceForceWeight = 1.5,
@@ -18,19 +18,18 @@ export default class Ant {
     colonyAttractionForceWeight = 0.5
   ) {
     this.p = p;
-    this.position = position.copy(); // Copy the starting position
+    this.position = position.copy();
     this.size = 5;
     this.speed = 1.5;
     this.perceptionRadius = 35;
     this.ants = ants;
     this.pheromones = pheromones;
     this.foodItems = foodItems;
-    this.colony = colony.copy(); // Ensure colony is copied correctly as p5.Vector
+    this.colony = colony.copy();
     this.velocity = p5.Vector.random2D().mult(this.speed);
     this.noiseOffset = this.p.random(1000); // For Perlin noise
 
-    // Add a deposit counter and interval
-    this.depositInterval = 10;
+    this.depositInterval = 10; // Frequency of pheromone deposition
     this.depositCounter = 0;
 
     // Force weights
@@ -39,25 +38,23 @@ export default class Ant {
     this.pheromoneAvoidanceForceWeight = pheromoneAvoidanceForceWeight;
     this.colonyAttractionForceWeight = colonyAttractionForceWeight;
 
-    // Colony attraction strength
     this.colonyAttractionStrength = colonyAttractionStrength;
 
-    // Initialize force vectors
+    // Force vectors
     this.randomSteer = this.p.createVector(0, 0);
     this.avoidanceForce = this.p.createVector(0, 0);
     this.pheromoneAvoidanceForce = this.p.createVector(0, 0);
     this.colonyAttractionForce = this.p.createVector(0, 0);
 
-    // Target food (null initially)
     this.targetFood = null;
-    this.returning = false; // Indicates if the ant is in return mode
+    this.returning = false; // Returning to colony after finding food
   }
 
   update() {
     this.move();
     this.edges();
 
-    // Increment the deposit counter
+    // Increment deposit counter for pheromones
     this.depositCounter++;
     if (this.depositCounter >= this.depositInterval) {
       this.depositPheromone();
@@ -67,17 +64,12 @@ export default class Ant {
 
   move() {
     if (this.returning) {
-      // In return mode, follow pheromones back to the colony
       this.returnToColony();
     } else {
-      // Check for food first
       this.checkForFood();
-
       if (this.targetFood) {
-        // If there's target food, move towards it
         this.moveToFood();
       } else {
-        // Standard movement logic using forces
         this.standardMovement();
       }
     }
@@ -101,16 +93,14 @@ export default class Ant {
 
     let d = this.p.dist(this.position.x, this.position.y, this.targetFood.position.x, this.targetFood.position.y);
     if (d < this.size / 2 + this.targetFood.size / 2) {
-      // When the ant reaches the food, switch to return mode
       this.returning = true;
-      this.targetFood = null; // Clear the food target
+      this.targetFood = null; 
     }
   }
 
   returnToColony() {
     let distToColony = this.p.dist(this.position.x, this.position.y, this.colony.x, this.colony.y);
 
-    // If the colony is within the perception radius, go straight to it
     if (distToColony < this.perceptionRadius) {
       let directionToColony = p5.Vector.sub(this.colony, this.position);
       directionToColony.setMag(this.speed);
@@ -118,14 +108,12 @@ export default class Ant {
       this.position.add(this.velocity);
 
       if (distToColony < this.size / 2 + 15) {
-        // De-spawn the ant when it reaches the colony
-        this.ants.splice(this.ants.indexOf(this), 1); // Remove the ant from the array
+        this.ants.splice(this.ants.indexOf(this), 1); // Remove the ant when it reaches the colony
       }
     } else {
       let weakestPheromone = null;
       let weakestStrength = Infinity;
 
-      // Find the weakest pheromone within perception range
       for (let pheromone of this.pheromones) {
         let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
         if (d < this.perceptionRadius && pheromone.type === 'explore') {
@@ -137,20 +125,16 @@ export default class Ant {
       }
 
       if (weakestPheromone) {
-        // Follow the weakest pheromone (indicating it's closer to the colony)
         let directionToPheromone = p5.Vector.sub(weakestPheromone.position, this.position);
         directionToPheromone.setMag(this.speed);
 
-        // Add some noise for randomness
         let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
         let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
 
-        // Combine direction and noise
         this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
         this.position.add(this.velocity);
         this.noiseOffset += 0.01;
       } else {
-        // If no pheromone found, move randomly
         this.standardMovement();
       }
     }
@@ -201,7 +185,7 @@ export default class Ant {
         if (d < this.perceptionRadius) {
           let diff = p5.Vector.sub(this.position, other.position);
           diff.normalize();
-          diff.div(d); // Weight by distance
+          diff.div(d);
           steering.add(diff);
           total++;
         }
@@ -230,8 +214,8 @@ export default class Ant {
         if (d < this.perceptionRadius) {
           let diff = p5.Vector.sub(this.position, pheromone.position);
           diff.normalize();
-          diff.div(d); // Weight by distance
-          diff.mult(pheromone.strength / 1000); // Weight by pheromone strength
+          diff.div(d); 
+          diff.mult(pheromone.strength / 1000);
           steering.add(diff);
           total++;
         }
@@ -254,13 +238,13 @@ export default class Ant {
   }
 
   depositPheromone() {
-    // Create a new exploration pheromone at the current position
-    let pheromone = new Pheromone(this.p, this.position, 'explore');
+    // Drop "explore" pheromones when exploring, and "food" pheromones when returning
+    let pheromoneType = this.returning ? 'food' : 'explore';
+    let pheromone = new Pheromone(this.p, this.position, pheromoneType);
     this.pheromones.push(pheromone);
   }
 
   edges() {
-    // Keep ants within the canvas boundaries (screen wrapping)
     if (this.position.x > this.p.width) this.position.x = 0;
     if (this.position.x < 0) this.position.x = this.p.width;
     if (this.position.y > this.p.height) this.position.y = 0;
@@ -268,47 +252,8 @@ export default class Ant {
   }
 
   display() {
-    // Draw the ant
     this.p.fill(50);
     this.p.noStroke();
     this.p.ellipse(this.position.x, this.position.y, this.size, this.size);
-
-    // Visualize perception radius
-    if (Ant.showPerceptionRadius) {
-      this.p.noFill();
-      this.p.stroke(0, 255, 0, 100); // Green color with some transparency
-      this.p.ellipse(this.position.x, this.position.y, this.perceptionRadius * 2);
-    }
-
-    // Visualize forces
-    if (Ant.showForces) {
-      let randomSteerScale = this.randomSteer.mag() * 50;
-      let avoidanceForceScale = this.avoidanceForce.mag() * 50;
-      let pheromoneAvoidanceForceScale = this.pheromoneAvoidanceForce.mag() * 50;
-      let colonyAttractionForceScale = this.colonyAttractionForce.mag() * 50;
-
-      this.p.stroke(0, 0, 255);
-      this.drawVector(this.velocity, this.position, 10);
-
-      this.p.stroke(128, 0, 128);
-      this.drawVector(this.randomSteer, this.position, randomSteerScale);
-
-      this.p.stroke(255, 0, 0);
-      this.drawVector(this.avoidanceForce, this.position, avoidanceForceScale);
-
-      this.p.stroke(255, 165, 0);
-      this.drawVector(this.pheromoneAvoidanceForce, this.position, pheromoneAvoidanceForceScale);
-
-      this.p.stroke(0, 255, 0);
-      this.drawVector(this.colonyAttractionForce, this.position, colonyAttractionForceScale);
-    }
-  }
-
-  drawVector(vec, pos, scale) {
-    this.p.push();
-    this.p.strokeWeight(2);
-    this.p.translate(pos.x, pos.y);
-    this.p.line(0, 0, vec.x * scale, vec.y * scale);
-    this.p.pop();
   }
 }
