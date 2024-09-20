@@ -2,6 +2,7 @@
 
 import p5 from 'p5';
 import Ant from './classes/Ant.js';
+import Food from './classes/Food.js';
 import Pheromone from './classes/Pheromone.js'; // Import Pheromone class
 
 const sketch = (p) => {
@@ -9,7 +10,6 @@ const sketch = (p) => {
   let ants = [];
   let pheromones = [];
   let foodItems = [];
-  let numAnts = 0; // Start with 0 ants
   let antSpawnInterval = 2000; // Milliseconds (2 seconds)
   let lastSpawnTime = 0;
 
@@ -17,14 +17,7 @@ const sketch = (p) => {
     p.createCanvas(p.windowWidth, p.windowHeight);
     colony = p.createVector(p.width / 2, p.height / 2); // Colony position
 
-    // Add multiple green food items at random positions
-    for (let i = 0; i < 5; i++) {  // Add 5 food items (adjust as needed)
-      let food = {
-        position: p.createVector(p.random(p.width), p.random(p.height)),
-        size: 15 // Food size (adjust as needed)
-      };
-      foodItems.push(food);
-    }
+    spawnFood(5); // Initialize with 5 food items
   };
 
   p.draw = () => {
@@ -56,11 +49,16 @@ const sketch = (p) => {
       ant.display();
     }
 
-    // Display food items in green
-    for (let food of foodItems) {
-      p.fill(0, 255, 0); // Green color for food
-      p.noStroke();
-      p.ellipse(food.position.x, food.position.y, food.size, food.size);
+    // Display and check food depletion
+    for (let i = foodItems.length - 1; i >= 0; i--) {
+      let food = foodItems[i];
+      food.display();
+      
+      // Check if food is depleted
+      if (food.isDepleted()) {
+        foodItems.splice(i, 1);  // Remove the depleted food
+        spawnFood(1); // Spawn a new food item
+      }
     }
   };
 
@@ -72,6 +70,13 @@ const sketch = (p) => {
     p.textAlign(p.CENTER, p.CENTER);
     p.textSize(12);
     p.text('Colony', colony.x, colony.y);
+  }
+
+  function spawnFood(amount) {
+    for (let i = 0; i < amount; i++) {
+      let food = new Food(p, p.createVector(p.random(p.width), p.random(p.height)));
+      foodItems.push(food);
+    }
   }
 
   p.windowResized = () => {

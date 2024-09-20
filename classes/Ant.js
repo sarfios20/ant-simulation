@@ -103,15 +103,16 @@ export default class Ant {
     directionToFood.setMag(this.speed);
     this.velocity = directionToFood;
     this.position.add(this.velocity);
-
+  
     let d = this.p.dist(this.position.x, this.position.y, this.targetFood.position.x, this.targetFood.position.y);
     if (d < this.size / 2 + this.targetFood.size / 2) {
+      this.targetFood.reduceFood(10); // Reduce the food amount by 10
       this.returning = true; // Switch to return mode
       this.targetFood = null; // Clear the food target
       this.foundFood = true;  // Mark that the ant found food
     }
   }
-
+  
   followFoodPheromone() {
     let weakestFoodPheromone = null;
     let weakestStrength = Infinity;
