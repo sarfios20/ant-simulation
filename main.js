@@ -10,7 +10,7 @@ const sketch = (p) => {
   let ants = [];
   let pheromones = [];
   let foodItems = [];
-  let antSpawnInterval = 2000; // Milliseconds (2 seconds)
+  let antSpawnInterval = 501; // Milliseconds (2 seconds)
   let lastSpawnTime = 0;
 
   p.setup = () => {

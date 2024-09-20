@@ -3,7 +3,7 @@
 import p5 from 'p5';
 import Pheromone from './Pheromone.js'; // Import Pheromone class
 
-const PHEROMONE_MAX_STRENGTH = 1000; // Use this constant for initial strength
+const PHEROMONE_MAX_STRENGTH = 3000; // Use this constant for initial strength
 const PHEROMONE_DECAY = 30; // Amount to decay each time a pheromone is dropped
 
 export default class Ant {
