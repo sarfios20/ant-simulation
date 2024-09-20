@@ -1,11 +1,11 @@
 // Pheromone.js
 
 export default class Pheromone {
-  constructor(p, position, type) {
+  constructor(p, position, type, strength = 1000) {
     this.p = p;
     this.position = position.copy();
     this.type = type; // 'explore' for exploring pheromones, 'food' for food pheromones
-    this.strength = 1000; // Initial strength
+    this.strength = strength; // Custom strength
     this.decayRate = 1; // Decay over time
   }
 

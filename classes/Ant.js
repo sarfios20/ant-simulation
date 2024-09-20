@@ -3,6 +3,9 @@
 import p5 from 'p5';
 import Pheromone from './Pheromone.js'; // Import Pheromone class
 
+const PHEROMONE_MAX_STRENGTH = 1000; // Use this constant for initial strength
+const PHEROMONE_DECAY = 30; // Amount to decay each time a pheromone is dropped
+
 export default class Ant {
   constructor(
     p,
@@ -15,8 +18,7 @@ export default class Ant {
     randomSteerWeight = 1.0,
     avoidanceForceWeight = 1.5,
     pheromoneAvoidanceForceWeight = 3.0,
-    colonyAttractionForceWeight = 0.5,
-    explorationTimeLimit = 10000 // Max time (in ms) an ant can explore without finding food
+    colonyAttractionForceWeight = 0.5
   ) {
     this.p = p;  // Reference to p5.js instance
     this.position = position.copy();
@@ -32,6 +34,9 @@ export default class Ant {
 
     this.depositInterval = 10; // Pheromone deposit interval
     this.depositCounter = 0;
+
+    // Track current pheromone strength
+    this.currentPheromoneStrength = PHEROMONE_MAX_STRENGTH;
 
     // Force weights
     this.randomSteerWeight = randomSteerWeight;
@@ -53,15 +58,9 @@ export default class Ant {
 
     // Track if the ant found food or not
     this.foundFood = false;
-
-    // Exploration timer
-    this.explorationStartTime = this.p.millis(); // Time when the ant starts exploring
-    this.explorationTimeLimit = explorationTimeLimit; // Time limit for exploration
   }
 
   update() {
-    this.checkExplorationTime(); // Check if the ant has been exploring too long
-
     this.move();
     this.edges();
 
@@ -70,14 +69,6 @@ export default class Ant {
     if (this.depositCounter >= this.depositInterval) {
       this.depositPheromone();
       this.depositCounter = 0;
-    }
-  }
-
-  checkExplorationTime() {
-    if (!this.returning && this.p.millis() - this.explorationStartTime > this.explorationTimeLimit) {
-      this.returning = true; // Switch to return mode
-      this.targetFood = null; // Clear the food target if any
-      this.foundFood = false; // Mark that the ant is returning without food
     }
   }
 
@@ -167,21 +158,22 @@ export default class Ant {
         this.ants.splice(this.ants.indexOf(this), 1); // Remove the ant when it reaches the colony
       }
     } else {
-      let weakestPheromone = null;
-      let weakestStrength = Infinity;
+      let strongestPheromone = null;
+      let highestStrength = -Infinity;
 
+      // Look for the strongest pheromone within perception range
       for (let pheromone of this.pheromones) {
         let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
         if (d < this.perceptionRadius && pheromone.type === 'explore') {
-          if (pheromone.strength < weakestStrength) {
-            weakestStrength = pheromone.strength;
-            weakestPheromone = pheromone;
+          if (pheromone.strength > highestStrength) {
+            highestStrength = pheromone.strength;
+            strongestPheromone = pheromone;
           }
         }
       }
 
-      if (weakestPheromone) {
-        let directionToPheromone = p5.Vector.sub(weakestPheromone.position, this.position);
+      if (strongestPheromone) {
+        let directionToPheromone = p5.Vector.sub(strongestPheromone.position, this.position);
         directionToPheromone.setMag(this.speed);
 
         let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
@@ -244,9 +236,27 @@ export default class Ant {
   }
 
   depositPheromone() {
-    let pheromoneType = this.returning && this.foundFood ? 'food' : 'explore';
-    let pheromone = new Pheromone(this.p, this.position, pheromoneType);
-    this.pheromones.push(pheromone);
+    if (this.returning) {
+      if (this.foundFood) {
+        // Drop food pheromones if the ant found food
+        let pheromone = new Pheromone(this.p, this.position, 'food', PHEROMONE_MAX_STRENGTH); 
+        this.pheromones.push(pheromone);
+      }
+    } else {
+      // While exploring, reduce pheromone strength gradually
+      let pheromone = new Pheromone(this.p, this.position, 'explore', this.currentPheromoneStrength);
+      this.pheromones.push(pheromone);
+
+      // Reduce strength for the next pheromone
+      this.currentPheromoneStrength = this.currentPheromoneStrength - PHEROMONE_DECAY;
+
+      // If pheromone strength reaches 0, the ant starts returning
+      if (this.currentPheromoneStrength <= 0) {
+        this.returning = true;
+        this.targetFood = null;
+        this.foundFood = false;
+      }
+    }
   }
 
   avoidOthers() {
@@ -284,7 +294,7 @@ export default class Ant {
           let diff = p5.Vector.sub(this.position, pheromone.position);
           diff.normalize();
           diff.div(d);
-          diff.mult(pheromone.strength / 1000);
+          diff.mult(pheromone.strength / PHEROMONE_MAX_STRENGTH);
           steering.add(diff);
           total++;
         }
