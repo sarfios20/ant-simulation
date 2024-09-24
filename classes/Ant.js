@@ -240,17 +240,23 @@ export default class Ant {
     if (this.returning) {
       if (this.foundFood) {
         // Drop food pheromones if the ant found food
-        let pheromone = new Pheromone(this.p, this.position, 'food', PHEROMONE_MAX_STRENGTH); 
+        let pheromone = new Pheromone(this.p, this.position, 'food', this.currentPheromoneStrength); 
         this.pheromones.push(pheromone);
+        
+        // Reduce strength for the next pheromone drop
+        this.currentPheromoneStrength -= PHEROMONE_DECAY;
+        if (this.currentPheromoneStrength <= 0) {
+          this.currentPheromoneStrength = 0; // Prevent negative strength
+        }
       }
     } else {
-      // While exploring, reduce pheromone strength gradually
+      // While exploring, reduce pheromone strength gradually for explorer pheromones
       let pheromone = new Pheromone(this.p, this.position, 'explore', this.currentPheromoneStrength);
       this.pheromones.push(pheromone);
-
-      // Reduce strength for the next pheromone
-      this.currentPheromoneStrength = this.currentPheromoneStrength - PHEROMONE_DECAY;
-
+  
+      // Reduce strength for the next explorer pheromone
+      this.currentPheromoneStrength -= PHEROMONE_DECAY;
+      
       // If pheromone strength reaches 0, the ant starts returning
       if (this.currentPheromoneStrength <= 0) {
         this.returning = true;
