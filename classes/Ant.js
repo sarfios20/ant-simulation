@@ -114,35 +114,35 @@ export default class Ant {
   }
   
   followFoodPheromone() {
-    let weakestFoodPheromone = null;
-    let weakestStrength = Infinity;
+    let strongestFoodPheromone = null;
+    let highestStrength = -Infinity;
 
-    // Find the weakest food pheromone within perception radius
+    // Find the strongest food pheromone within perception radius
     for (let pheromone of this.pheromones) {
-      let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
-      if (d < this.perceptionRadius && pheromone.type === 'food') {
-        if (pheromone.strength < weakestStrength) {
-          weakestStrength = pheromone.strength;
-          weakestFoodPheromone = pheromone;
+        let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
+        if (d < this.perceptionRadius && pheromone.type === 'food') {
+            if (pheromone.strength > highestStrength) {
+                highestStrength = pheromone.strength;
+                strongestFoodPheromone = pheromone;
+            }
         }
-      }
     }
 
-    if (weakestFoodPheromone) {
-      let directionToPheromone = p5.Vector.sub(weakestFoodPheromone.position, this.position);
-      directionToPheromone.setMag(this.speed);
+    if (strongestFoodPheromone) {
+        let directionToPheromone = p5.Vector.sub(strongestFoodPheromone.position, this.position);
+        directionToPheromone.setMag(this.speed);
 
-      let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
-      let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
+        let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
+        let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
 
-      this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
-      this.position.add(this.velocity);
-      this.noiseOffset += 0.01;
+        this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
+        this.position.add(this.velocity);
+        this.noiseOffset += 0.01;
 
-      this.checkForFood(); // Check for food while following the pheromone
+        this.checkForFood(); // Continue checking for food while following the pheromone
     } else {
-      this.followingFoodPheromone = false;
-      this.standardMovement(); // No food pheromone detected, return to random movement
+        this.followingFoodPheromone = false;
+        this.standardMovement(); // No food pheromone detected, return to random movement
     }
   }
 
