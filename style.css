@@ -94,3 +94,32 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Floating toolbar styles */
+#toolbar {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 100;
+  display: flex;
+  gap: 10px;
+}
+
+#toolbar button {
+  background-color: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#toolbar button:hover {
+  background-color: #535bf2;
+}

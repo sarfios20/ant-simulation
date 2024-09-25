@@ -1,12 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <title>Ant Colony Simulation</title>
-    <!-- Vite handles module scripts -->
+    <link rel="stylesheet" href="/style.css">
     <script type="module" src="/main.js"></script>
-  </head>
-  <body>
-    <!-- No need to include p5.js here, as we'll import it in main.js -->
-  </body>
+</head>
+<body>
+    <!-- Floating Toolbar -->
+    <div id="toolbar">
+        <button id="pause-btn">| |</button>
+        <button id="play-btn">></button>
+        <button id="fast-forward-btn">>></button>
+    </div>
+
+    <!-- Main simulation area -->
+    <div id="simulation-container"></div>
+
+    <script src="main.js"></script>
+</body>
 </html>
