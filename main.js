@@ -48,18 +48,20 @@ const sketch = (p) => {
     p.background(220); // Clear background
     drawColony(); // Draw the colony
 
-    // Apply the updated values to all ants and pheromones in real time
-    for (let ant of ants) {
+    // Spawn new ants at regular intervals
+    if (p.millis() - lastSpawnTime > antSpawnInterval && currentAnts < maxAnts) {
+      let ant = new Ant(p, colony, ants, pheromones, foodItems, colony);
       ant.speed = antSpeed; // Set ant speed based on user input
       ant.perceptionRadius = perceptionRadius; // Set perception radius
-      ant.update();
-      ant.display();
+      ants.push(ant);
+      currentAnts++;
+      lastSpawnTime = p.millis();
     }
 
     // Update and display pheromones
     for (let i = pheromones.length - 1; i >= 0; i--) {
       let pheromone = pheromones[i];
-      pheromone.decayRate = pheromoneDecayRate; // Apply decay rate from slider to all pheromones
+      pheromone.decayRate = pheromoneDecayRate; // Set decay rate from slider
       pheromone.update();
       pheromone.display();
 
@@ -69,14 +71,10 @@ const sketch = (p) => {
       }
     }
 
-    // Spawn new ants at regular intervals, respecting the max ants limit
-    if (p.millis() - lastSpawnTime > antSpawnInterval && currentAnts < maxAnts) {
-      let ant = new Ant(p, colony, ants, pheromones, foodItems, colony);
-      ant.speed = antSpeed; // Set ant speed for the newly created ant
-      ant.perceptionRadius = perceptionRadius; // Set perception radius for new ants
-      ants.push(ant);
-      currentAnts++;
-      lastSpawnTime = p.millis();
+    // Update and display ants
+    for (let ant of ants) {
+      ant.update();
+      ant.display();
     }
 
     // Display and check for food depletion
