@@ -25,14 +25,8 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
 }
 
 #app {
@@ -40,27 +34,6 @@ h1 {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #f7df1eaa);
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
 
 button {
@@ -80,19 +53,6 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
 }
 
 /* Floating toolbar styles */
@@ -122,4 +82,73 @@ button:focus-visible {
 
 #toolbar button:hover {
   background-color: #535bf2;
+}
+
+/* Control Panel styles */
+#control-panel {
+  position: fixed;
+  top: 50px;
+  left: 0;
+  width: 250px;
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  color: white;
+  z-index: 100;
+}
+
+#control-panel h3 {
+  margin-bottom: 10px;
+}
+
+#control-panel label {
+  display: block;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+#control-panel input[type="range"] {
+  width: 100%;
+  margin-bottom: 10px;
+  appearance: none;
+  background: #fff;
+  height: 5px;
+  border-radius: 5px;
+  outline: none;
+}
+
+#control-panel input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  background: #646cff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#control-panel input[type="range"]::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  background: #646cff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Simulation container */
+#simulation-container {
+  position: absolute;
+  top: 0;
+  left: 250px; /* Leave space for the control panel */
+  right: 0;
+  bottom: 0;
+  background-color: #f4f4f4;
+  z-index: 1;
+}
+
+canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 250px; /* Ensure it aligns with the control panel's edge */
+  z-index: 2; /* Keep it above the background but below controls */
 }

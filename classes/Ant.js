@@ -3,8 +3,7 @@
 import p5 from 'p5';
 import Pheromone from './Pheromone.js'; // Import Pheromone class
 
-const PHEROMONE_MAX_STRENGTH = 3000; // Use this constant for initial strength
-const PHEROMONE_DECAY = 30; // Amount to decay each time a pheromone is dropped
+const PHEROMONE_DECAY = 100;
 
 export default class Ant {
   constructor(
@@ -14,49 +13,34 @@ export default class Ant {
     pheromones,
     foodItems,
     colony,
-    colonyAttractionStrength = 0.1,
-    randomSteerWeight = 1.0,
-    avoidanceForceWeight = 1.5,
-    pheromoneAvoidanceForceWeight = 3.0,
-    colonyAttractionForceWeight = 0.5
   ) {
-    this.p = p;  // Reference to p5.js instance
+    this.p = p; // Reference to p5.js instance
     this.position = position.copy();
     this.size = 5;
-    this.speed = 1.5;
-    this.perceptionRadius = 35;
+    this.velocity = p5.Vector.random2D().mult(simulationState.ants.speed); // Use speed from simulationState
+    this.noiseOffset = this.p.random(1000);
+
     this.ants = ants;
     this.pheromones = pheromones;
     this.foodItems = foodItems;
     this.colony = colony.copy();
-    this.velocity = p5.Vector.random2D().mult(this.speed);
-    this.noiseOffset = this.p.random(1000);
 
     this.depositInterval = 10; // Pheromone deposit interval
     this.depositCounter = 0;
 
-    // Track current pheromone strength
-    this.currentPheromoneStrength = PHEROMONE_MAX_STRENGTH;
+    // Track current pheromone strength (from simulationState)
+    this.currentPheromoneStrength = simulationState.pheromones.initialStrength;
 
-    // Force weights
-    this.randomSteerWeight = randomSteerWeight;
-    this.avoidanceForceWeight = avoidanceForceWeight;
-    this.pheromoneAvoidanceForceWeight = pheromoneAvoidanceForceWeight;
-    this.colonyAttractionForceWeight = colonyAttractionForceWeight;
-
-    this.colonyAttractionStrength = colonyAttractionStrength;
-
-    // Force vectors
-    this.randomSteer = this.p.createVector(0, 0);
-    this.avoidanceForce = this.p.createVector(0, 0);
-    this.pheromoneAvoidanceForce = this.p.createVector(0, 0);
-    this.colonyAttractionForce = this.p.createVector(0, 0);
+    // Dynamic values for perception and steering forces from simulationState
+    this.perceptionRadius = simulationState.ants.perceptionRadius;
+    this.randomSteerWeight = simulationState.ants.steeringForces.random;
+    this.avoidanceForceWeight = simulationState.ants.steeringForces.avoidance;
+    this.pheromoneAvoidanceForceWeight = simulationState.ants.steeringForces.pheromoneAvoidance;
+    this.colonyAttractionForceWeight = simulationState.ants.steeringForces.colonyAttraction;
 
     this.targetFood = null;
     this.returning = false;
     this.followingFoodPheromone = false;
-
-    // Track if the ant found food or not
     this.foundFood = false;
   }
 
@@ -100,49 +84,49 @@ export default class Ant {
 
   moveToFood() {
     let directionToFood = p5.Vector.sub(this.targetFood.position, this.position);
-    directionToFood.setMag(this.speed);
+    directionToFood.setMag(simulationState.ants.speed); // Use dynamic speed
     this.velocity = directionToFood;
     this.position.add(this.velocity);
-  
+
     let d = this.p.dist(this.position.x, this.position.y, this.targetFood.position.x, this.targetFood.position.y);
     if (d < this.size / 2 + this.targetFood.size / 2) {
       this.targetFood.reduceFood(10); // Reduce the food amount by 10
       this.returning = true; // Switch to return mode
       this.targetFood = null; // Clear the food target
-      this.foundFood = true;  // Mark that the ant found food
+      this.foundFood = true; // Mark that the ant found food
     }
   }
-  
+
   followFoodPheromone() {
     let strongestFoodPheromone = null;
     let highestStrength = -Infinity;
 
     // Find the strongest food pheromone within perception radius
     for (let pheromone of this.pheromones) {
-        let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
-        if (d < this.perceptionRadius && pheromone.type === 'food') {
-            if (pheromone.strength > highestStrength) {
-                highestStrength = pheromone.strength;
-                strongestFoodPheromone = pheromone;
-            }
+      let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
+      if (d < this.perceptionRadius && pheromone.type === 'food') {
+        if (pheromone.strength > highestStrength) {
+          highestStrength = pheromone.strength;
+          strongestFoodPheromone = pheromone;
         }
+      }
     }
 
     if (strongestFoodPheromone) {
-        let directionToPheromone = p5.Vector.sub(strongestFoodPheromone.position, this.position);
-        directionToPheromone.setMag(this.speed);
+      let directionToPheromone = p5.Vector.sub(strongestFoodPheromone.position, this.position);
+      directionToPheromone.setMag(simulationState.ants.speed);
 
-        let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
-        let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
+      let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
+      let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
 
-        this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
-        this.position.add(this.velocity);
-        this.noiseOffset += 0.01;
+      this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
+      this.position.add(this.velocity);
+      this.noiseOffset += 0.01;
 
-        this.checkForFood(); // Continue checking for food while following the pheromone
+      this.checkForFood(); // Continue checking for food while following the pheromone
     } else {
-        this.followingFoodPheromone = false;
-        this.standardMovement(); // No food pheromone detected, return to random movement
+      this.followingFoodPheromone = false;
+      this.standardMovement(); // No food pheromone detected, return to random movement
     }
   }
 
@@ -150,32 +134,36 @@ export default class Ant {
     let distToColony = this.p.dist(this.position.x, this.position.y, this.colony.x, this.colony.y);
 
     if (distToColony < this.perceptionRadius) {
+      // Head directly to the colony if it's within perception radius
       let directionToColony = p5.Vector.sub(this.colony, this.position);
-      directionToColony.setMag(this.speed);
+      directionToColony.setMag(simulationState.ants.speed);
       this.velocity = directionToColony;
       this.position.add(this.velocity);
 
+      // Remove the ant when it reaches the colony
       if (distToColony < this.size / 2 + 15) {
-        this.ants.splice(this.ants.indexOf(this), 1); // Remove the ant when it reaches the colony
+        this.ants.splice(this.ants.indexOf(this), 1); 
       }
     } else {
-      let strongestPheromone = null;
+      // Follow the strongest explorer pheromone
+      let strongestExplorerPheromone = null;
       let highestStrength = -Infinity;
 
-      // Look for the strongest pheromone within perception range
+      // Look for the strongest 'explore' pheromone within the ant's perception range
       for (let pheromone of this.pheromones) {
         let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
         if (d < this.perceptionRadius && pheromone.type === 'explore') {
           if (pheromone.strength > highestStrength) {
             highestStrength = pheromone.strength;
-            strongestPheromone = pheromone;
+            strongestExplorerPheromone = pheromone;
           }
         }
       }
 
-      if (strongestPheromone) {
-        let directionToPheromone = p5.Vector.sub(strongestPheromone.position, this.position);
-        directionToPheromone.setMag(this.speed);
+      if (strongestExplorerPheromone) {
+        // Move towards the strongest explorer pheromone
+        let directionToPheromone = p5.Vector.sub(strongestExplorerPheromone.position, this.position);
+        directionToPheromone.setMag(simulationState.ants.speed);
 
         let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
         let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
@@ -184,6 +172,7 @@ export default class Ant {
         this.position.add(this.velocity);
         this.noiseOffset += 0.01;
       } else {
+        // If no pheromones are found, move randomly
         this.standardMovement();
       }
     }
@@ -221,7 +210,7 @@ export default class Ant {
     steering.add(weightedPheromoneAvoidanceForce);
     steering.add(weightedColonyAttractionForce);
 
-    steering.setMag(this.speed);
+    steering.setMag(simulationState.ants.speed);
     this.velocity = steering.copy();
     this.position.add(this.velocity);
   }
@@ -276,7 +265,7 @@ export default class Ant {
         if (d < this.perceptionRadius) {
           let diff = p5.Vector.sub(this.position, other.position);
           diff.normalize();
-          diff.div(d);
+          diff.div(d); // Weight by distance
           steering.add(diff);
           total++;
         }
@@ -293,32 +282,33 @@ export default class Ant {
   avoidPheromones() {
     let total = 0;
     let steering = this.p.createVector(0, 0);
-
+  
     for (let pheromone of this.pheromones) {
       if (pheromone.type === 'explore') {
         let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
-        if (d < this.perceptionRadius) {
+        if (d < this.perceptionRadius && d > 0) { // Added d > 0 check
           let diff = p5.Vector.sub(this.position, pheromone.position);
           diff.normalize();
-          diff.div(d);
-          diff.mult(pheromone.strength / PHEROMONE_MAX_STRENGTH);
+          diff.div(d); // Weight by distance
+          diff.mult(pheromone.strength / simulationState.pheromones.initialStrength);
           steering.add(diff);
           total++;
         }
       }
     }
-
+  
     if (total > 0) {
       steering.div(total);
     }
-
+  
     return steering;
   }
+  
 
   attractToColony() {
     let directionToColony = p5.Vector.sub(this.colony, this.position);
     directionToColony.normalize();
-    let attractionForce = directionToColony.mult(this.colonyAttractionStrength);
+    let attractionForce = directionToColony.mult(simulationState.ants.steeringForces.colonyAttraction);
 
     return attractionForce;
   }

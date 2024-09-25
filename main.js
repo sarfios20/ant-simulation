@@ -1,12 +1,31 @@
 import p5 from 'p5';
 import Ant from './classes/Ant.js';
 import Food from './classes/Food.js';
-import Pheromone from './classes/Pheromone.js';
-import { setupUIControls } from './classes/uiControls.js'; // Import UI controls
+import { setupUIControls } from './classes/uiControls.js'; 
 
-// Global variables for simulation speed and pause state
-window.simulationSpeed = 1;
-window.simulationPaused = false;
+// Global object to store all state
+const simulationState = {
+  ants: {
+    speed: 1.5,
+    perceptionRadius: 35,
+    maxAnts: 100,
+    steeringForces: {
+      random: 1.0,
+      avoidance: 1.5,
+      pheromoneAvoidance: 3.0,
+      colonyAttraction: 0.5,
+    },
+  },
+  pheromones: {
+    decayRate: 5,
+    initialStrength: 5000,
+  },
+  // General simulation controls
+  simulationSpeed: 1,
+  simulationPaused: false,
+};
+
+window.simulationState = simulationState; // Expose simulationState globally for UI access
 
 const sketch = (p) => {
   let colony;
@@ -27,10 +46,10 @@ const sketch = (p) => {
   };
 
   p.draw = () => {
-    if (window.simulationPaused) return; // Stop updates when paused
+    if (simulationState.simulationPaused) return; // Stop updates when paused
 
     // Adjust simulation updates based on speed
-    for (let i = 0; i < window.simulationSpeed; i++) {
+    for (let i = 0; i < simulationState.simulationSpeed; i++) {
       updateSimulation();
     }
   };
@@ -39,8 +58,8 @@ const sketch = (p) => {
     p.background(220); // Clear background
     drawColony(); // Draw the colony
 
-    // Spawn new ants at regular intervals
-    if (p.millis() - lastSpawnTime > antSpawnInterval) {
+    // Spawn new ants at regular intervals, respecting maxAnts limit
+    if (p.millis() - lastSpawnTime > antSpawnInterval && ants.length < simulationState.ants.maxAnts) {
       let ant = new Ant(p, colony, ants, pheromones, foodItems, colony);
       ants.push(ant);
       lastSpawnTime = p.millis();
