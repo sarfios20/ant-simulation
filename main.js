@@ -4,9 +4,17 @@ import Food from './classes/Food.js';
 import Pheromone from './classes/Pheromone.js';
 import { setupUIControls } from './classes/uiControls.js'; // Import UI controls
 
-// Global variables for simulation speed and pause state
+// Global variables for simulation state
 window.simulationSpeed = 1;
 window.simulationPaused = false;
+let maxAnts = 100;
+let currentAnts = 0;
+
+// Default behavior settings
+let antSpeed = 1.5;
+let perceptionRadius = 35;
+let pheromoneDecayRate = 30;
+let initialPheromoneStrength = 3000;
 
 const sketch = (p) => {
   let colony;
@@ -24,6 +32,7 @@ const sketch = (p) => {
 
     // Setup the UI controls for pause, play, and speed
     setupUIControls();
+    setupSidebarControls();
   };
 
   p.draw = () => {
@@ -40,15 +49,19 @@ const sketch = (p) => {
     drawColony(); // Draw the colony
 
     // Spawn new ants at regular intervals
-    if (p.millis() - lastSpawnTime > antSpawnInterval) {
+    if (p.millis() - lastSpawnTime > antSpawnInterval && currentAnts < maxAnts) {
       let ant = new Ant(p, colony, ants, pheromones, foodItems, colony);
+      ant.speed = antSpeed; // Set ant speed based on user input
+      ant.perceptionRadius = perceptionRadius; // Set perception radius
       ants.push(ant);
+      currentAnts++;
       lastSpawnTime = p.millis();
     }
 
     // Update and display pheromones
     for (let i = pheromones.length - 1; i >= 0; i--) {
       let pheromone = pheromones[i];
+      pheromone.decayRate = pheromoneDecayRate; // Set decay rate from slider
       pheromone.update();
       pheromone.display();
 
@@ -99,6 +112,34 @@ const sketch = (p) => {
     p.resizeCanvas(p.windowWidth, p.windowHeight);
     colony.set(p.width / 2, p.height / 2); // Adjust colony to the center on resize
   };
+
+  // Setup event listeners for the sidebar controls
+  function setupSidebarControls() {
+    document.getElementById('speed-slider').addEventListener('input', (e) => {
+      antSpeed = parseFloat(e.target.value);
+    });
+
+    document.getElementById('perception-radius-slider').addEventListener('input', (e) => {
+      perceptionRadius = parseFloat(e.target.value);
+    });
+
+    document.getElementById('pheromone-decay-slider').addEventListener('input', (e) => {
+      pheromoneDecayRate = parseFloat(e.target.value);
+    });
+
+    document.getElementById('pheromone-strength-slider').addEventListener('input', (e) => {
+      initialPheromoneStrength = parseFloat(e.target.value);
+    });
+
+    document.getElementById('max-ants-slider').addEventListener('input', (e) => {
+      maxAnts = parseInt(e.target.value);
+    });
+
+    document.getElementById('clear-ants-btn').addEventListener('click', () => {
+      ants.length = 0;
+      currentAnts = 0; // Reset the current number of ants
+    });
+  }
 };
 
 // Initialize the p5.js sketch
