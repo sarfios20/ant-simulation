@@ -27,14 +27,17 @@ const simulationState = {
 
 window.simulationState = simulationState; // Expose simulationState globally for UI access
 
-const sketch = (p) => {
-  let colony;
-  let ants = [];
-  let pheromones = [];
-  let foodItems = [];
-  let antSpawnInterval = 500; // Milliseconds between new ant spawns
-  let lastSpawnTime = 0;
+let colony;
+let ants = [];
+let pheromones = [];
+let foodItems = [];
+let antSpawnInterval = 500; // Milliseconds between new ant spawns
+let lastSpawnTime = 0;
 
+let placingFood = false;
+let removingFood = false;
+
+const sketch = (p) => {
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight);
     colony = p.createVector(p.width / 2, p.height / 2); // Set colony position at center
@@ -51,6 +54,23 @@ const sketch = (p) => {
     // Adjust simulation updates based on speed
     for (let i = 0; i < simulationState.simulationSpeed; i++) {
       updateSimulation();
+    }
+  };
+
+  p.mousePressed = () => {
+    // Get the canvas position relative to the window
+    const canvasPosition = p.canvas.getBoundingClientRect();
+
+    // Calculate the correct position of the click relative to the canvas
+    const adjustedX = p.mouseX - canvasPosition.left;
+    const adjustedY = p.mouseY - canvasPosition.top;
+
+    // Handle food placement or removal when the mouse is clicked
+    if (placingFood) {
+      const foodAmount = parseInt(document.getElementById('food-amount-slider').value);
+      spawnFoodAt(adjustedX, adjustedY, foodAmount);  // Use adjustedX and adjustedY for accurate placement
+    } else if (removingFood) {
+      removeFoodAt(adjustedX, adjustedY);  // Use adjustedX and adjustedY for accurate removal
     }
   };
 
@@ -112,6 +132,32 @@ const sketch = (p) => {
       foodItems.push(food);
     }
   }
+
+  // --- New functions for interactive food placement and removal ---
+
+  // Spawns food at a given position (x, y) with a specified amount of food
+  function spawnFoodAt(x, y, amount) {
+    let food = new Food(p, p.createVector(x, y), amount);
+    foodItems.push(food);
+  }
+
+  // Expose spawnFoodAt to the global window object
+  window.spawnFoodAt = spawnFoodAt;
+
+  // Removes food at a given position (x, y) if the click is close to any existing food
+  function removeFoodAt(x, y) {
+    for (let i = foodItems.length - 1; i >= 0; i--) {
+      let food = foodItems[i];
+      let d = p.dist(x, y, food.position.x, food.position.y);
+      if (d < food.size / 2) {
+        foodItems.splice(i, 1); // Remove the food if clicked within its radius
+        break;
+      }
+    }
+  }
+
+  // Expose removeFoodAt to the global window object
+  window.removeFoodAt = removeFoodAt;
 
   // Handle window resize
   p.windowResized = () => {

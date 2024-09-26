@@ -14,6 +14,9 @@ export function setupUIControls() {
   setupSlider('pheromone-decay-slider', 'pheromones.decayRate');
   setupSlider('pheromone-strength-slider', 'pheromones.initialStrength');
 
+  // Food Controls
+  setupFoodControls();
+
   // Simulation Speed Controls
   document.getElementById('pause-btn').addEventListener('click', () => pauseSimulation());
   document.getElementById('play-btn').addEventListener('click', () => setSimulationSpeed(1));
@@ -48,4 +51,55 @@ function pauseSimulation() {
 function setSimulationSpeed(speed) {
   simulationState.simulationSpeed = speed;
   simulationState.simulationPaused = false;
+}
+
+// --- Food Controls Section ---
+
+function setupFoodControls() {
+  const addFoodButton = document.getElementById('add-food-btn');
+  const removeFoodButton = document.getElementById('remove-food-btn');
+  const foodAmountSlider = document.getElementById('food-amount-slider');
+
+  let placingFood = false;
+  let removingFood = false;
+
+  // Handle Add Food Mode
+  addFoodButton.addEventListener('click', () => {
+    placingFood = !placingFood; // Toggle food placement mode
+    removingFood = false; // Ensure removal mode is off when adding food
+
+    if (placingFood) {
+      addFoodButton.style.backgroundColor = '#646cff'; // Highlight active mode
+      removeFoodButton.style.backgroundColor = ''; // Reset removal button color
+      document.body.style.cursor = 'crosshair'; // Change cursor to indicate food placement mode
+    } else {
+      addFoodButton.style.backgroundColor = ''; // Reset button color
+      document.body.style.cursor = ''; // Reset cursor
+    }
+  });
+
+  // Handle Remove Food Mode
+  removeFoodButton.addEventListener('click', () => {
+    removingFood = !removingFood; // Toggle food removal mode
+    placingFood = false; // Ensure placement mode is off when removing food
+
+    if (removingFood) {
+      removeFoodButton.style.backgroundColor = '#646cff'; // Highlight active mode
+      addFoodButton.style.backgroundColor = ''; // Reset add food button color
+      document.body.style.cursor = 'pointer'; // Change cursor to indicate food removal mode
+    } else {
+      removeFoodButton.style.backgroundColor = ''; // Reset button color
+      document.body.style.cursor = ''; // Reset cursor
+    }
+  });
+
+  // Expose event listeners to interact with `main.js`
+  window.addEventListener('click', (event) => {
+    if (placingFood) {
+      const foodAmount = parseInt(foodAmountSlider.value);
+      window.spawnFoodAt(event.clientX, event.clientY, foodAmount);
+    } else if (removingFood) {
+      window.removeFoodAt(event.clientX, event.clientY);
+    }
+  });
 }
