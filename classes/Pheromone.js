@@ -1,16 +1,16 @@
 // Pheromone.js
 
 export default class Pheromone {
-  constructor(p, position, type, strength = 1000) {
+  constructor(p, position, type, strength = simulationState.pheromones.initialStrength) {
     this.p = p;
     this.position = position.copy();
     this.type = type; // 'explore' for exploring pheromones, 'food' for food pheromones
-    this.strength = strength; // Custom strength
-    this.decayRate = 1; // Decay over time
+    this.strength = strength; // Initial strength is now pulled from simulationState
+    this.decayRate = simulationState.pheromones.decayRate; // Decay rate from simulationState
   }
 
   update() {
-    this.strength -= this.decayRate;
+    this.strength -= this.decayRate; // Reduce strength according to decay rate
   }
 
   isWeak() {
@@ -24,6 +24,6 @@ export default class Pheromone {
     } else if (this.type === 'food') {
       this.p.fill(255, 0, 0, this.strength); // Red for food pheromones
     }
-    this.p.ellipse(this.position.x, this.position.y, 4, 4); // Small circle
+    this.p.ellipse(this.position.x, this.position.y, 4, 4); // Small circle representing pheromone
   }
 }
