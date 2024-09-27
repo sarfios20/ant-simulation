@@ -57,20 +57,21 @@ const sketch = (p) => {
     }
   };
 
+  // Handle food placement/removal click with canvas-relative coordinates
   p.mousePressed = () => {
-    // Get the canvas position relative to the window
-    const canvasPosition = p.canvas.getBoundingClientRect();
+    if (placingFood || removingFood) {
+      // Get the exact bounding rectangle of the canvas
+      const canvasPosition = p.canvas.getBoundingClientRect();
+      // Adjust the position relative to the canvas
+      const adjustedX = p.mouseX - canvasPosition.left;
+      const adjustedY = p.mouseY - canvasPosition.top;
 
-    // Calculate the correct position of the click relative to the canvas
-    const adjustedX = p.mouseX - canvasPosition.left;
-    const adjustedY = p.mouseY - canvasPosition.top;
-
-    // Handle food placement or removal when the mouse is clicked
-    if (placingFood) {
-      const foodAmount = parseInt(document.getElementById('food-amount-slider').value);
-      spawnFoodAt(adjustedX, adjustedY, foodAmount);  // Use adjustedX and adjustedY for accurate placement
-    } else if (removingFood) {
-      removeFoodAt(adjustedX, adjustedY);  // Use adjustedX and adjustedY for accurate removal
+      if (placingFood) {
+        const foodAmount = parseInt(document.getElementById('food-amount-slider').value);
+        spawnFoodAt(adjustedX, adjustedY, foodAmount); // Use adjusted coordinates
+      } else if (removingFood) {
+        removeFoodAt(adjustedX, adjustedY); // Use adjusted coordinates
+      }
     }
   };
 
@@ -133,22 +134,30 @@ const sketch = (p) => {
     }
   }
 
-  // --- New functions for interactive food placement and removal ---
+  // --- Modified function for food placement ---
 
-  // Spawns food at a given position (x, y) with a specified amount of food
+  // This function now adjusts the mouse coordinates using canvas bounds
   function spawnFoodAt(x, y, amount) {
-    let food = new Food(p, p.createVector(x, y), amount);
+    const canvasPosition = p.canvas.getBoundingClientRect();
+    const adjustedX = x - canvasPosition.left;
+    const adjustedY = y - canvasPosition.top;
+
+    let food = new Food(p, p.createVector(adjustedX, adjustedY), amount);
     foodItems.push(food);
   }
 
-  // Expose spawnFoodAt to the global window object
+  // Expose spawnFoodAt to the global window object for use by uiControls
   window.spawnFoodAt = spawnFoodAt;
 
   // Removes food at a given position (x, y) if the click is close to any existing food
   function removeFoodAt(x, y) {
+    const canvasPosition = p.canvas.getBoundingClientRect();
+    const adjustedX = x - canvasPosition.left;
+    const adjustedY = y - canvasPosition.top;
+
     for (let i = foodItems.length - 1; i >= 0; i--) {
       let food = foodItems[i];
-      let d = p.dist(x, y, food.position.x, food.position.y);
+      let d = p.dist(adjustedX, adjustedY, food.position.x, food.position.y);
       if (d < food.size / 2) {
         foodItems.splice(i, 1); // Remove the food if clicked within its radius
         break;
@@ -156,7 +165,7 @@ const sketch = (p) => {
     }
   }
 
-  // Expose removeFoodAt to the global window object
+  // Expose removeFoodAt to the global window object for use by uiControls
   window.removeFoodAt = removeFoodAt;
 
   // Handle window resize
