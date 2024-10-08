@@ -66,19 +66,18 @@ const sketch = (p) => {
   };
 
   p.mousePressed = () => {
-    // Get the canvas position relative to the window
-    const canvasPosition = p.canvas.getBoundingClientRect();
-
-    // Calculate the correct position of the click relative to the canvas
-    const adjustedX = p.mouseX - canvasPosition.left;
-    const adjustedY = p.mouseY - canvasPosition.top;
-
-    // Handle food placement or removal when the mouse is clicked
-    if (placingFood) {
-      const foodAmount = parseInt(document.getElementById('food-amount-slider').value);
-      spawnFoodAt(adjustedX, adjustedY, foodAmount);  // Use adjustedX and adjustedY for accurate placement
-    } else if (removingFood) {
-      removeFoodAt(adjustedX, adjustedY);  // Use adjustedX and adjustedY for accurate removal
+    if (placingFood || removingFood) {
+      // Get the exact bounding rectangle of the canvas
+      const canvasPosition = p.canvas.getBoundingClientRect();
+      // Adjust the position relative to the canvas
+      const adjustedX = p.mouseX - canvasPosition.left;
+      const adjustedY = p.mouseY - canvasPosition.top;
+      if (placingFood) {
+        const foodAmount = parseInt(document.getElementById('food-amount-slider').value);
+        spawnFoodAt(adjustedX, adjustedY, foodAmount); // Use adjusted coordinates
+      } else if (removingFood) {
+        removeFoodAt(adjustedX, adjustedY); // Use adjusted coordinates
+      }
     }
   };
 
