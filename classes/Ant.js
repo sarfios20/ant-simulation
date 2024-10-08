@@ -87,7 +87,7 @@ export default class Ant {
     directionToFood.setMag(simulationState.ants.speed); // Use dynamic speed
     this.velocity = directionToFood;
     this.position.add(this.velocity);
-
+  
     let d = this.p.dist(this.position.x, this.position.y, this.targetFood.position.x, this.targetFood.position.y);
     if (d < this.size / 2 + this.targetFood.size / 2) {
       this.targetFood.reduceFood(10); // Reduce the food amount by 10
@@ -96,6 +96,8 @@ export default class Ant {
       this.foundFood = true; // Mark that the ant found food
     }
   }
+  
+
 
   followFoodPheromone() {
     let strongestFoodPheromone = null;
@@ -132,14 +134,14 @@ export default class Ant {
 
   returnToColony() {
     let distToColony = this.p.dist(this.position.x, this.position.y, this.colony.x, this.colony.y);
-
+  
     if (distToColony < this.perceptionRadius) {
       // Head directly to the colony if it's within perception radius
       let directionToColony = p5.Vector.sub(this.colony, this.position);
-      directionToColony.setMag(simulationState.ants.speed);
+      directionToColony.setMag(simulationState.ants.speed); // Use dynamic speed
       this.velocity = directionToColony;
       this.position.add(this.velocity);
-
+  
       // Remove the ant when it reaches the colony
       if (distToColony < this.size / 2 + 15) {
         this.ants.splice(this.ants.indexOf(this), 1); 
@@ -148,7 +150,7 @@ export default class Ant {
       // Follow the strongest explorer pheromone
       let strongestExplorerPheromone = null;
       let highestStrength = -Infinity;
-
+  
       // Look for the strongest 'explore' pheromone within the ant's perception range
       for (let pheromone of this.pheromones) {
         let d = this.p.dist(this.position.x, this.position.y, pheromone.position.x, pheromone.position.y);
@@ -159,15 +161,15 @@ export default class Ant {
           }
         }
       }
-
+  
       if (strongestExplorerPheromone) {
         // Move towards the strongest explorer pheromone
         let directionToPheromone = p5.Vector.sub(strongestExplorerPheromone.position, this.position);
         directionToPheromone.setMag(simulationState.ants.speed);
-
+  
         let noiseAngle = this.p.noise(this.noiseOffset) * this.p.TWO_PI * 0.1;
         let noiseVector = this.p.createVector(this.p.cos(noiseAngle), this.p.sin(noiseAngle)).mult(0.2);
-
+  
         this.velocity = p5.Vector.add(directionToPheromone, noiseVector);
         this.position.add(this.velocity);
         this.noiseOffset += 0.01;
@@ -177,6 +179,7 @@ export default class Ant {
       }
     }
   }
+  
 
   standardMovement() {
     let detectedFoodPheromone = this.detectFoodPheromone();
