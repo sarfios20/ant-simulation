@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Colonia de hormigas · orden emergente</title>
+<title>Ant colony · emergent order</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,66 +11,66 @@
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="hud">
-      <div><span class="k">Entregas</span><span id="m-deliveries">0</span></div>
-      <div><span class="k">Viaje medio</span><span id="m-trip">—</span></div>
-      <div><span class="k">Hormigas</span><span id="m-ants">0</span></div>
+      <div><span class="k">Deliveries</span><span id="m-deliveries">0</span></div>
+      <div><span class="k">Avg. trip</span><span id="m-trip">—</span></div>
+      <div><span class="k">Ants</span><span id="m-ants">0</span></div>
     </div>
   </div>
 
   <aside id="panel">
-    <h1>Colonia de hormigas</h1>
-    <p class="lead">Mundo abierto: un muro entre el nido y la comida, con dos formas de rodearlo (por
-      arriba, barro lento; por abajo, rápido). Dos feromonas (a comida y a casa), cada hormiga huele
-      solo la suya. La colonia converge sola a la ruta rápida, sin que nadie la calcule.</p>
+    <h1>Ant colony</h1>
+    <p class="lead">Open world: a wall between the nest and the food, with two ways around it (slow
+      mud above, fast below). Two pheromones (to-food and to-home), each ant smells
+      only its own. The colony converges on the fast route by itself, with nobody computing it.</p>
 
     <div class="group">
       <div class="row">
-        <button id="btn-pause">Pausa</button>
+        <button id="btn-pause">Pause</button>
         <button id="btn-speed">1×</button>
-        <button id="btn-reset">Reiniciar escena</button>
+        <button id="btn-reset">Reset scene</button>
       </div>
     </div>
 
     <div class="group">
-      <h2>Pincel</h2>
+      <h2>Brush</h2>
       <div class="tools">
-        <button class="tool active" data-tool="wall">Muro</button>
-        <button class="tool" data-tool="slow">Terreno lento</button>
-        <button class="tool" data-tool="food">Comida</button>
-        <button class="tool" data-tool="erase">Borrar</button>
+        <button class="tool active" data-tool="wall">Wall</button>
+        <button class="tool" data-tool="slow">Slow terrain</button>
+        <button class="tool" data-tool="food">Food</button>
+        <button class="tool" data-tool="erase">Erase</button>
       </div>
-      <label>Tamaño pincel <input id="brush" type="range" min="1" max="12" value="4"></label>
+      <label>Brush size <input id="brush" type="range" min="1" max="12" value="4"></label>
       <div class="row">
-        <button id="btn-clear-walls">Limpiar obstáculos</button>
-        <button id="btn-clear-trails">Limpiar rastros</button>
+        <button id="btn-clear-walls">Clear obstacles</button>
+        <button id="btn-clear-trails">Clear trails</button>
       </div>
     </div>
 
     <div class="group">
-      <h2>Parámetros</h2>
-      <label>Nº de hormigas <span id="v-ants">300</span>
+      <h2>Parameters</h2>
+      <label>Ant count <span id="v-ants">300</span>
         <input id="p-ants" type="range" min="20" max="800" value="300" step="10"></label>
-      <label>Evaporación <span id="v-evap">0.995</span>
+      <label>Evaporation <span id="v-evap">0.995</span>
         <input id="p-evap" type="range" min="970" max="999" value="995"></label>
-      <label>Difusión <span id="v-diff">0.10</span>
+      <label>Diffusion <span id="v-diff">0.10</span>
         <input id="p-diff" type="range" min="0" max="50" value="10"></label>
     </div>
 
     <div class="group legend">
-      <h2>Leyenda</h2>
-      <div><span class="dot food"></span> rastro a comida (verde)</div>
-      <div><span class="dot home"></span> rastro a casa (azul)</div>
-      <div><span class="dot ant-s"></span> hormiga explorando</div>
-      <div><span class="dot ant-f"></span> hormiga con comida</div>
+      <h2>Legend</h2>
+      <div><span class="dot food"></span> trail to food (green)</div>
+      <div><span class="dot home"></span> trail to home (blue)</div>
+      <div><span class="dot ant-s"></span> ant exploring</div>
+      <div><span class="dot ant-f"></span> ant carrying food</div>
     </div>
 
     <details class="group">
-      <summary>¿Por qué es emergente?</summary>
-      <p>Ninguna hormiga conoce el mapa. Cada una huele solo una feromona (la exploradora la de comida,
-      la cargada la de casa) y va hacia donde más huele; el muro tapa el olfato, así que no se puede oler
-      a través de él. La ruta rápida se recorre más veces por minuto, recibe más feromona antes de que se
-      evapore y se refuerza; la lenta se desvanece. La ruta óptima no la decide nadie: surge de la
-      suma de decisiones locales.</p>
+      <summary>Why is it emergent?</summary>
+      <p>No ant knows the map. Each one smells only one pheromone (explorers the to-food one,
+      carriers the to-home one) and heads where it smells the most; the wall blocks smell, so nothing
+      can be smelled through it. The fast route gets traveled more times per minute, receives more
+      pheromone before it evaporates and gets reinforced; the slow one fades away. Nobody decides the
+      optimal route: it arises from the sum of local decisions.</p>
     </details>
   </aside>
 </div>

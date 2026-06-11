@@ -1,9 +1,9 @@
-// Verificacion headless (sin DOM, mismo core.js que el navegador). Mundo abierto con
-// muro: mide si el rastro toFood se concentra en el rodeo RAPIDO (abajo) frente al
-// LENTO (arriba, barro), a lo largo del tiempo, y si arranca sin sesgo (emergencia).
+// Headless check (no DOM, same core.js as the browser). Open world with a wall:
+// measures whether the toFood trail concentrates on the FAST detour (bottom)
+// versus the SLOW one (top, mud) over time, and whether it starts unbiased (emergence).
 const { Sim } = require('./core.js');
 
-// masa de toFood en cada rodeo, en la franja a la altura del muro.
+// mass of toFood on each detour, in the band at the wall's height.
 function routeMass(half) {
   const c0 = Sim.colOf(300), c1 = Sim.colOf(520);
   const r0 = half === 'top' ? Sim.rowOf(35) : Sim.rowOf(450);
@@ -16,7 +16,7 @@ function routeMass(half) {
 }
 
 Sim.resetScene();
-console.log('fase  entregas  rodeo_arriba(lento)  rodeo_abajo(rapido)  cuotaRapida');
+console.log('phase  deliveries  top_detour(slow)  bottom_detour(fast)  fastShare');
 let prev = 0;
 const finals = [];
 for (let phase = 0; phase < 12; phase++) {
@@ -33,11 +33,11 @@ const top = last3.reduce((s, f) => s + f.top, 0) / 3;
 const bottom = last3.reduce((s, f) => s + f.bottom, 0) / 3;
 const maxTrail = Math.max(...Sim.toFood);
 const share = bottom / (top + bottom + 1e-9) * 100;
-console.log(`\nEntregas totales: ${Sim.deliveries}`);
-console.log(`Pico de toFood: ${maxTrail.toFixed(1)}`);
-console.log(`Media ultimas 3 fases  arriba(lento)=${top.toFixed(0)}  abajo(rapido)=${bottom.toFixed(0)}  cuotaRapida=${share.toFixed(0)}%`);
+console.log(`\nTotal deliveries: ${Sim.deliveries}`);
+console.log(`Peak toFood: ${maxTrail.toFixed(1)}`);
+console.log(`Avg. last 3 phases  top(slow)=${top.toFixed(0)}  bottom(fast)=${bottom.toFixed(0)}  fastShare=${share.toFixed(0)}%`);
 
 const forms = maxTrail > 5 && Sim.deliveries > 300;
 const prefersFast = bottom > top * 1.8;
-console.log(`\n${forms ? 'OK' : 'FALLO'}: ${forms ? 'se forma rastro y entregan comida' : 'no se forma rastro util'}`);
-console.log(`${prefersFast ? 'OK' : 'AVISO'}: ${prefersFast ? 'el rastro converge a la ruta rapida' : 'el rastro no domina la ruta rapida'}`);
+console.log(`\n${forms ? 'OK' : 'FAIL'}: ${forms ? 'a trail forms and food gets delivered' : 'no useful trail forms'}`);
+console.log(`${prefersFast ? 'OK' : 'WARN'}: ${prefersFast ? 'the trail converges on the fast route' : 'the trail does not dominate the fast route'}`);

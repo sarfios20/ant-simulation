@@ -1,27 +1,29 @@
 // ============================================================================
-//  Nucleo de la simulacion (sin DOM). Se usa igual en el navegador (sim.js)
-//  y en el test headless (headless-test.js), asi se valida el mismo codigo.
+//  Simulation core (no DOM). Used as-is in the browser (sim.js) and in the
+//  headless test (headless-test.js), so the same code gets validated.
 // ----------------------------------------------------------------------------
-//  MUNDO ABIERTO con DOS FEROMONAS y gradiente auto-emergente. Cada hormiga es
-//  "tonta": solo huele feromona en 3 antenas y va hacia donde mas/menos huele.
-//  No hay mapa, ni vector interno, ni nada precalculado. Todo es feromona.
+//  OPEN WORLD with TWO PHEROMONES and a self-emergent gradient. Each ant is
+//  "dumb": it only smells pheromone with 3 antennae and heads where it smells
+//  the most/least. No map, no internal vector, nothing precomputed. Everything
+//  is pheromone.
 //
-//  Dos rastros, simetricos:
-//   - toHome ("a casa"): lo dejan las que SALEN del nido. El deposito DECAE con la
-//     distancia recorrida desde el nido => es mas fuerte cerca del nido. Una hormiga
-//     CARGADA lo sigue cuesta arriba y eso la lleva a casa.
-//   - toFood ("a comida"): lo dejan las que VUELVEN con comida. Decae con la distancia
-//     desde la comida => mas fuerte cerca de la comida. Una EXPLORADORA lo sigue cuesta
-//     arriba y eso la lleva a la comida.
+//  Two trails, symmetric:
+//   - toHome ("to home"): laid by ants LEAVING the nest. The deposit DECAYS with
+//     the distance traveled from the nest => it's stronger near the nest. A
+//     CARRYING ant follows it uphill and that takes it home.
+//   - toFood ("to food"): laid by ants RETURNING with food. Decays with the
+//     distance from the food => stronger near the food. An EXPLORER follows it
+//     uphill and that takes it to the food.
 //
-//  Una exploradora sin rastro de comida cerca baja su propio toHome (se aleja del nido
-//  a explorar); en cuanto pilla el toFood, lo sube hasta la comida. Asi navega todo por
-//  feromona, sin saber donde esta nada.
+//  An explorer with no food trail nearby walks down its own toHome (moves away
+//  from the nest to explore); as soon as it picks up toFood, it climbs it to the
+//  food. So everything navigates by pheromone, without knowing where anything is.
 //
-//  Emergencia de la ruta rapida: ambos rastros se EVAPORAN. La ruta rapida se recorre
-//  mas veces por minuto, recibe mas feromona antes de evaporarse y se refuerza; la lenta
-//  (barro) se desvanece. El gradiente y el deposito se escalan por la velocidad (cuentan
-//  distancia, no pasos), asi el barro no engana al rastro solo por dar mas pasos.
+//  Emergence of the fast route: both trails EVAPORATE. The fast route gets
+//  traveled more times per minute, receives more pheromone before evaporating
+//  and gets reinforced; the slow one (mud) fades. The gradient and the deposit
+//  are scaled by speed (they count distance, not steps), so mud can't fool the
+//  trail just by taking more steps.
 // ============================================================================
 
 const CONFIG = {
@@ -29,41 +31,43 @@ const CONFIG = {
   CELL: 4,
   ANTS: 300,
   SPEED: 1.3,
-  SENSOR_DIST: 24,     // alcance de las antenas (px): amplio, para poder atajar curvas
-  SENSOR_ANGLE: 0.5,   // separacion de las antenas laterales (rad)
-  TURN: 0.5,           // giro maximo al seguir el rastro (rad)
-  WANDER: 0.16,        // ruido de rumbo (exploracion)
-  DEPOSIT: 3.0,        // feromona base por paso (se multiplica por la "carga" de la hormiga)
-  CHARGE_LIFE: 800,    // pasos en los que se gasta la carga: la hormiga arranca con carga 1
-                       // al salir del nido / coger comida y suelta menos cada paso hasta 0.
-                       // Eso crea el gradiente (fuerte cerca del origen) al estilo Lague.
+  SENSOR_DIST: 24,     // antenna range (px): wide, so curves can be cut
+  SENSOR_ANGLE: 0.5,   // separation of the side antennae (rad)
+  TURN: 0.5,           // max turn while following the trail (rad)
+  WANDER: 0.16,        // heading noise (exploration)
+  DEPOSIT: 3.0,        // base pheromone per step (multiplied by the ant's "charge")
+  CHARGE_LIFE: 800,    // steps over which the charge runs out: the ant starts with
+                       // charge 1 when leaving the nest / picking up food and deposits
+                       // less each step until 0. That creates the gradient (strong
+                       // near the origin), Lague style.
   CELL_CAP: 80,
-  // Las dos feromonas evaporan a ritmos OPUESTOS, a proposito:
-  EVAP_FOOD: 0.997,     // rastro a comida: rapido => la ruta lenta se desvanece y solo
-                       //   sobrevive la que se repinta mucho (la rapida) => OPTIMIZA.
-  EVAP_HOME: 0.9995,   // rastro a casa: lento => persiste y las cargadas vuelven SIEMPRE
-                       //   => ESTABLE (no colapsa aunque haya pocas hormigas).
+  // The two pheromones evaporate at OPPOSITE rates, on purpose:
+  EVAP_FOOD: 0.997,     // to-food trail: fast => the slow route fades and only the
+                       //   heavily repainted one (the fast one) survives => OPTIMIZES.
+  EVAP_HOME: 0.9995,   // to-home trail: slow => persists and carriers ALWAYS get back
+                       //   => STABLE (doesn't collapse even with few ants).
   DIFFUSE: 0.12,
-  FOOD_DETECT: 110,     // si la exploradora ve la comida a <FOOD_DETECT (sin muro), va
-                       // DIRECTA, por encima del rastro. Menor que NEST_DETECT a proposito:
-                       // la comida es la META cuya ruta optimizamos, asi que las hormigas
-                       // deben seguir necesitando el rastro en el trayecto largo. Si fuera
-                       // grande, llegarian a la comida sin rastro y la ruta no emergeria.
-  SLOW_MULT: 0.30,     // factor de velocidad en terreno lento (barro)
-  // Interruptor de las dos approaches a comparar:
-  //  - false/false (mia): gradiente por desplazamiento + seguir el rastro mas FUERTE.
-  //  - true/true (tuya):  deposito CONSTANTE + seguir el rastro mas DEBIL (la feromona
-  //    fresca es la mas fuerte, asi que ir a lo debil = no perseguir a quien acaba de pasar).
+  FOOD_DETECT: 110,     // if an explorer sees the food at <FOOD_DETECT (no wall), it
+                       // goes STRAIGHT, overriding the trail. Smaller than NEST_DETECT
+                       // on purpose: the food is the GOAL whose route we optimize, so
+                       // ants must keep needing the trail on the long leg. If it were
+                       // large, they'd reach the food without a trail and the route
+                       // wouldn't emerge.
+  SLOW_MULT: 0.30,     // speed factor on slow terrain (mud)
+  // Switch between the two approaches to compare:
+  //  - false/false (mine): displacement-based gradient + follow the STRONGEST trail.
+  //  - true/true (yours):  CONSTANT deposit + follow the WEAKEST trail (fresh pheromone
+  //    is the strongest, so going for the weak = not chasing whoever just passed by).
   FOLLOW_WEAK: false,
   CONST_DEPOSIT: false,
-  REPEL_HOME: 0.5,     // las exploradoras se repelen un poco del rastro "a casa": las
-                       // empuja a explorar hacia afuera (el toHome es fuerte cerca del nido)
+  REPEL_HOME: 0.5,     // explorers are slightly repelled by the "to home" trail: it
+                       // pushes them to explore outward (toHome is strong near the nest)
   NEST_R: 18,
-  NEST_DETECT: 110,    // si la cargada esta a <NEST_DETECT del nido y lo ve (sin muro
-                       // de por medio), va DIRECTA, por encima de las feromonas. Asi no
-                       // se queda dando vueltas cerca de casa siguiendo el rastro.
-  SPAWN_EVERY: 10,     // pasos entre cada nueva hormiga (las suelta poco a poco, no en
-                       // oleada: flujo continuo => rastro estable, sin sincronizacion)
+  NEST_DETECT: 110,    // if a carrier is at <NEST_DETECT from the nest and sees it (no
+                       // wall in between), it goes STRAIGHT, overriding the pheromones.
+                       // Keeps it from circling near home following the trail.
+  SPAWN_EVERY: 10,     // steps between each new ant (released gradually, not in a
+                       // wave: continuous flow => stable trail, no synchronization)
 };
 
 const FREE = 0, WALL = 1, SLOW = 2;
@@ -89,7 +93,7 @@ const Sim = {
     return this.terrain[this.idx(c, r)] === WALL;
   },
 
-  // suma de feromona en 3x3 alrededor de un punto. Muros = 0 (neutro).
+  // sum of pheromone in a 3x3 around a point. Walls = 0 (neutral).
   sample(field, x, y) {
     const cc = this.colOf(x), cr = this.rowOf(y);
     let sum = 0;
@@ -103,7 +107,7 @@ const Sim = {
     return sum;
   },
 
-  // celda de comida mas cercana dentro de FOOD_DETECT (px), o null. Devuelve el punto.
+  // nearest food cell within FOOD_DETECT (px), or null. Returns the point.
   findFood(x, y) {
     const rc = Math.ceil(CONFIG.FOOD_DETECT / CONFIG.CELL), cc = this.colOf(x), cr = this.rowOf(y);
     const r2 = CONFIG.FOOD_DETECT * CONFIG.FOOD_DETECT;
@@ -127,8 +131,9 @@ const Sim = {
     return h + d * amt;
   },
 
-  // hay un muro en el segmento de la hormiga hasta el punto? Si lo hay, por ahi no se
-  // huele nada (el muro tapa el olfato). Permite radio amplio sin "atajar" por el muro.
+  // is there a wall on the segment from the ant to the point? If so, nothing can
+  // be smelled that way (the wall blocks smell). Allows a wide radius without
+  // "cutting through" the wall.
   wallOnSegment(x0, y0, x1, y1) {
     const dx = x1 - x0, dy = y1 - y0;
     const steps = Math.ceil(Math.hypot(dx, dy) / CONFIG.CELL);
@@ -139,9 +144,10 @@ const Sim = {
     return false;
   },
 
-  // Gira el rumbo hacia donde mas huele UNA feromona (la de su meta), con 3 antenas de
-  // radio amplio. La antena cuyo segmento cruza un muro no detecta nada (-Infinity).
-  // Si no huele nada (rastro = 0 en las tres) sigue recto y el ruido la hace explorar.
+  // Turns the heading toward where ONE pheromone (its goal's) smells strongest,
+  // with 3 wide-radius antennae. An antenna whose segment crosses a wall detects
+  // nothing (-Infinity). If it smells nothing (trail = 0 on all three) it keeps
+  // straight and the noise makes it explore.
   steerToField(a, field) {
     const d = CONFIG.SENSOR_DIST, ang = CONFIG.SENSOR_ANGLE, weak = CONFIG.FOLLOW_WEAK;
     const hs = [a.heading - ang, a.heading, a.heading + ang];
@@ -152,23 +158,23 @@ const Sim = {
       else v[k] = this.sample(field, px, py);
     }
     if (blk[0] && blk[1] && blk[2]) { a.heading += Math.PI * 0.5 + (Math.random() - 0.5); return false; }
-    // muros = peor opcion (nunca elegirlos): +Inf si buscamos el minimo, -Inf si el maximo
+    // walls = worst option (never pick them): +Inf if we seek the min, -Inf if the max
     const W = weak ? Infinity : -Infinity;
     const L = blk[0] ? W : v[0], C = blk[1] ? W : v[1], R = blk[2] ? W : v[2];
-    if (weak) {            // seguir el mas DEBIL (centro preferido en empate)
-      if (C <= L && C <= R) { /* recto */ }
+    if (weak) {            // follow the WEAKEST (center preferred on ties)
+      if (C <= L && C <= R) { /* straight */ }
       else if (L < R) a.heading -= CONFIG.TURN * Math.random();
       else a.heading += CONFIG.TURN * Math.random();
-    } else {               // seguir el mas FUERTE
-      if (C >= L && C >= R) { /* recto */ }
+    } else {               // follow the STRONGEST
+      if (C >= L && C >= R) { /* straight */ }
       else if (L > R) a.heading -= CONFIG.TURN * Math.random();
       else a.heading += CONFIG.TURN * Math.random();
     }
-    return Math.max(v[0], v[1], v[2]) > 0.5;   // true si hay un rastro de verdad alrededor
+    return Math.max(v[0], v[1], v[2]) > 0.5;   // true if there's a real trail around
   },
 
-  // repulsion suave: gira el rumbo hacia el lado donde MENOS huele el campo (away).
-  // Para que las exploradoras se aparten del rastro "a casa" y exploren hacia afuera.
+  // soft repulsion: turns the heading toward the side where the field smells LESS
+  // (away). So explorers steer off the "to home" trail and explore outward.
   repelFrom(a, field, w) {
     if (w <= 0) return;
     const d = CONFIG.SENSOR_DIST, ang = CONFIG.SENSOR_ANGLE;
@@ -207,19 +213,19 @@ const Sim = {
   },
 
   newAnt() {
-    // charge: "carga" de feromona estilo Lague. Arranca en 1 al salir del nido / coger
-    //   comida y se gasta cada paso (deposita menos al alejarse) => gradiente fuerte
-    //   cerca del origen. round: metrica.
+    // charge: Lague-style pheromone "charge". Starts at 1 when leaving the nest /
+    //   picking up food and runs out each step (deposits less when farther away)
+    //   => strong gradient near the origin. round: metric.
     return { x: this.nest.x, y: this.nest.y, heading: Math.random() * Math.PI * 2, hasFood: false, charge: 1, round: 0 };
   },
 
-  // No se crean todas de golpe: se fija un objetivo y step() las va soltando de a una
-  // cada SPAWN_EVERY pasos (flujo continuo, sin oleada sincronizada).
+  // Not all created at once: a target is set and step() releases them one at a
+  // time every SPAWN_EVERY steps (continuous flow, no synchronized wave).
   spawnAnts(n) { this.ants = []; this.targetAnts = n; this.spawnAccum = 0; },
 
   setAntCount(n) {
     this.targetAnts = n;
-    if (n < this.ants.length) this.ants.length = n;   // bajar el numero es inmediato
+    if (n < this.ants.length) this.ants.length = n;   // lowering the count is immediate
   },
 
   resetScene() {
@@ -227,12 +233,13 @@ const Sim = {
     this.deliveries = 0;
     this.tripSamples = [];
     this.searchSamples = [];
-    // Muro entre nido y comida: hay que rodearlo por arriba o por abajo.
+    // Wall between nest and food: it must be skirted above or below.
     this.paintRect(380, 160, 440, 440, WALL);
-    // Terreno lento cubriendo el rodeo de ARRIBA. Ambos rodeos miden casi lo mismo,
-    // pero el de abajo es mas RAPIDO => la colonia converge a el (optimiza por velocidad).
+    // Slow terrain covering the TOP detour. Both detours are almost the same
+    // length, but the bottom one is FASTER => the colony converges on it
+    // (optimizes for speed).
     this.paintRect(200, 0, 620, 158, SLOW);
-    // Comida a la derecha; nido a la izquierda.
+    // Food on the right; nest on the left.
     this.addFoodBlob(690, 300, 12, 100000);
     this.spawnAnts(CONFIG.ANTS);
   },
@@ -240,10 +247,11 @@ const Sim = {
   updateAnt(a) {
     a.round++;
 
-    let directed = false;   // va guiada (rastro o meta a la vista)? entonces apenas zigzaguea
+    let directed = false;   // guided (trail or goal in sight)? then it barely zigzags
     if (a.hasFood) {
-      // CARGADA: si detecta el nido (cerca y sin muro de por medio), va DIRECTA, por
-      // encima de las feromonas (evita loops cerca de casa). Si no, sigue el rastro a CASA.
+      // CARRYING: if it detects the nest (close and no wall in between), it goes
+      // STRAIGHT, overriding the pheromones (avoids loops near home). Otherwise it
+      // follows the trail HOME.
       const dn = Math.hypot(a.x - this.nest.x, a.y - this.nest.y);
       if (dn < CONFIG.NEST_DETECT && !this.wallOnSegment(a.x, a.y, this.nest.x, this.nest.y)) {
         a.heading = this.steerToward(a.heading, Math.atan2(this.nest.y - a.y, this.nest.x - a.x), 0.7);
@@ -252,8 +260,9 @@ const Sim = {
         directed = this.steerToField(a, this.toHome);
       }
     } else {
-      // EXPLORANDO: si detecta la comida (cerca y sin muro), va DIRECTA. Si no, SIGUE el
-      // rastro a COMIDA hacia la comida; solo si no huele rastro vaga al azar (explora).
+      // EXPLORING: if it detects the food (close and no wall), it goes STRAIGHT.
+      // Otherwise it FOLLOWS the to-food trail toward the food; only if it smells
+      // no trail does it wander at random (explores).
       const food = this.findFood(a.x, a.y);
       if (food && !this.wallOnSegment(a.x, a.y, food.x, food.y)) {
         a.heading = this.steerToward(a.heading, Math.atan2(food.y - a.y, food.x - a.x), 0.7);
@@ -261,14 +270,14 @@ const Sim = {
       } else {
         directed = this.steerToField(a, this.toFood);
       }
-      // repulsion suave del rastro a casa: explora hacia afuera, no se queda cerca del nido
+      // soft repulsion from the home trail: explores outward, doesn't linger near the nest
       this.repelFrom(a, this.toHome, CONFIG.REPEL_HOME);
     }
-    // ruido alto si va perdida (explora); reducido pero NO nulo si va guiada: sigue el
-    // rastro pero con margen para salirse un poco y descubrir atajos => optimiza la ruta.
+    // high noise when lost (explores); reduced but NOT zero when guided: it follows
+    // the trail with some slack to drift off a bit and discover shortcuts => optimizes the route.
     a.heading += (Math.random() - 0.5) * CONFIG.WANDER * (directed ? 0.5 : 1);
 
-    // movimiento (freno en barro)
+    // movement (mud brake)
     const here = this.idx(this.colOf(a.x), this.rowOf(a.y));
     const onSlow = this.inBounds(this.colOf(a.x), this.rowOf(a.y)) && this.terrain[here] === SLOW;
     const mult = onSlow ? CONFIG.SLOW_MULT : 1;
@@ -279,34 +288,34 @@ const Sim = {
     if (ny < 1 || ny > CONFIG.H - 1) { a.heading = -a.heading; ny = a.y; }
 
     if (this.wallAtPx(nx, ny)) {
-      a.heading += Math.PI * 0.5 + (Math.random() - 0.5) * Math.PI;   // rebote
+      a.heading += Math.PI * 0.5 + (Math.random() - 0.5) * Math.PI;   // bounce
     } else {
       a.x = nx; a.y = ny;
     }
-    // la carga se gasta con cada paso (estilo Lague): deposita menos al alejarse
+    // the charge runs out with each step (Lague style): deposits less when farther away
     if (a.charge > 0) a.charge = Math.max(0, a.charge - 1 / CONFIG.CHARGE_LIFE);
 
-    // comida / nido
+    // food / nest
     const ci = this.idx(this.colOf(a.x), this.rowOf(a.y));
     if (!a.hasFood) {
       if (this.inBounds(this.colOf(a.x), this.rowOf(a.y)) && this.food[ci] > 0) {
         this.food[ci] -= 1; a.hasFood = true; a.heading += Math.PI;
         this.searchSamples.push(a.round);
         if (this.searchSamples.length > 200) this.searchSamples.shift();
-        a.charge = 1;   // recarga: nuevo origen del gradiente (la comida)
+        a.charge = 1;   // recharge: new gradient origin (the food)
       }
     } else if (Math.hypot(a.x - this.nest.x, a.y - this.nest.y) < CONFIG.NEST_R) {
       a.hasFood = false; this.deliveries++;
       this.tripSamples.push(a.round);
       if (this.tripSamples.length > 200) this.tripSamples.shift();
       a.heading += Math.PI; a.round = 0;
-      a.charge = 1;   // recarga: nuevo origen del gradiente (el nido)
+      a.charge = 1;   // recharge: new gradient origin (the nest)
     }
 
-    // DEPOSITO estilo Lague: el cargado deja toFood, el explorador toHome. La cantidad
-    // es DEPOSIT * carga (decae con los pasos desde el origen) y se escala por velocidad
-    // (mult), asi el barro no acumula de mas por dar mas pasos; su penalizacion es que
-    // gasta la carga mas rapido => el extremo lejano de la ruta lenta queda poco marcado.
+    // Lague-style DEPOSIT: carriers lay toFood, explorers toHome. The amount is
+    // DEPOSIT * charge (decays with steps from the origin) and is scaled by speed
+    // (mult), so mud doesn't over-accumulate from taking more steps; its penalty is
+    // that it burns the charge faster => the far end of the slow route stays faint.
     if (this.inBounds(this.colOf(a.x), this.rowOf(a.y))) {
       const di = this.idx(this.colOf(a.x), this.rowOf(a.y));
       if (this.terrain[di] !== WALL) {
@@ -340,7 +349,7 @@ const Sim = {
   },
 
   step() {
-    // suelta hormigas poco a poco hasta el objetivo (una cada SPAWN_EVERY pasos)
+    // releases ants gradually up to the target (one every SPAWN_EVERY steps)
     if (this.ants.length < this.targetAnts && ++this.spawnAccum >= CONFIG.SPAWN_EVERY) {
       this.spawnAccum = 0;
       this.ants.push(this.newAnt());
