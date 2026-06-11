@@ -1,86 +1,87 @@
-# Colonia de hormigas · orden emergente
+# Ant colony · emergent order
 
-Simulación de hormigas que, siguiendo cada una **reglas locales muy simples y sin
-ningún conocimiento del mapa**, encuentran la comida sorteando un muro y un terreno
-lento, y **optimizan la ruta más rápida** hacia ella. La ruta no la decide nadie:
-**emerge** del refuerzo colectivo de feromonas.
+A simulation of ants that, each following **very simple local rules with no
+knowledge of the map**, find the food by getting around a wall and slow terrain,
+and **optimize the fastest route** to it. Nobody decides the route:
+it **emerges** from the collective reinforcement of pheromones.
 
-Es un sistema agente-a-agente en mundo continuo, de la familia de los foraging
-clásicos (estilo Sebastian Lague): dos feromonas, depósito decreciente, evaporación.
+It's an agent-to-agent system in a continuous world, from the family of classic
+foraging sims (Sebastian Lague style): two pheromones, decaying deposit, evaporation.
 
-![captura](screenshot.png)
+![screenshot](screenshot.png)
 
-## Cómo ejecutar
+## How to run
 
-Abre `index.html` en el navegador. No necesita servidor ni dependencias.
+Open `index.html` in your browser. No server or dependencies needed.
 
 ```
 xdg-open index.html
 ```
 
-## La escena
+## The scene
 
-- **Nido** a la izquierda, **comida** a la derecha.
-- Un **muro** en medio: hay que rodearlo por arriba o por abajo.
-- El rodeo de **arriba es terreno lento (barro)**; el de **abajo es rápido**. Miden
-  casi lo mismo, pero la colonia converge al de abajo: optimiza por **velocidad**.
+- **Nest** on the left, **food** on the right.
+- A **wall** in the middle: it must be skirted above or below.
+- The **top** detour is **slow terrain (mud)**; the **bottom** one is **fast**. They're
+  almost the same length, but the colony converges on the bottom one: it optimizes for **speed**.
 
-Puedes pintar muros, barro y comida con el ratón y ver cómo re-optimiza en vivo.
+You can paint walls, mud and food with the mouse and watch it re-optimize live.
 
-## El modelo (reglas locales, nada global)
+## The model (local rules, nothing global)
 
-Dos feromonas y hormigas "tontas" que solo huelen y andan:
+Two pheromones and "dumb" ants that only smell and walk:
 
-- **Dos rastros**: `toFood` (lo dejan las que vuelven con comida) y `toHome` (lo dejan
-  las que salen del nido). Cada hormiga **huele solo el de su meta** e ignora el otro:
-  la exploradora sigue `toFood` hacia la comida, la cargada sigue `toHome` hacia casa.
-  Va hacia donde **más huele**, con 3 antenas de radio amplio.
+- **Two trails**: `toFood` (laid by ants returning with food) and `toHome` (laid by
+  ants leaving the nest). Each ant **smells only the one for its goal** and ignores the
+  other: explorers follow `toFood` toward the food, carriers follow `toHome` toward home.
+  It heads where it **smells the most**, using 3 wide-radius antennae.
 
-- **Carga decreciente (estilo Lague)**: cada hormiga arranca con una "carga" llena al
-  salir del nido o al coger comida, y **deposita menos en cada paso** según se gasta.
-  Eso crea el **gradiente** (el rastro es más fuerte cerca de su origen), que es lo que
-  le da el sentido al seguir "lo más fuerte". El depósito se escala por la velocidad,
-  así el barro no acumula de más solo por dar más pasos.
+- **Decaying deposit (Lague style)**: each ant starts with a full "charge" when leaving
+  the nest or picking up food, and **deposits less on every step** as it runs out.
+  That creates the **gradient** (the trail is stronger near its origin), which is what
+  makes "follow the strongest" meaningful. The deposit is scaled by speed,
+  so mud doesn't over-accumulate just because it takes more steps.
 
-- **El muro tapa el olfato**: una antena cuyo camino cruza un muro no detecta nada, así
-  que el radio amplio sirve para atajar curvas en abierto pero nunca a través del muro.
+- **The wall blocks smell**: an antenna whose path crosses a wall detects nothing, so
+  the wide radius helps cut corners in the open but never through the wall.
 
-- **Olfato local de la meta**: si la cargada **ve el nido** de cerca (o la exploradora
-  **ve la comida**), va directa, por encima de las feromonas. Evita que se queden dando
-  vueltas pegadas a casa o a la comida.
+- **Local sense of the goal**: if a carrier **sees the nest** up close (or an explorer
+  **sees the food**), it goes straight for it, overriding the pheromones. This prevents
+  ants from circling endlessly right next to home or the food.
 
-- **Repulsión de las exploradoras al rastro a casa**: se apartan un poco del `toHome`,
-  lo que las empuja a explorar hacia afuera (y hace que el rastro arranque fiable).
+- **Explorer repulsion from the home trail**: explorers steer slightly away from
+  `toHome`, which pushes them to explore outward (and makes the trail bootstrap reliably).
 
-- **Evaporación + difusión**: el `toFood` evapora rápido (la ruta lenta se desvanece y
-  solo sobrevive la que se repinta mucho, la rápida) y el `toHome` lento (persiste, así
-  las cargadas siempre tienen camino de vuelta). Las hormigas se sueltan **poco a poco**
-  (no en oleada), para un flujo continuo y un rastro estable.
+- **Evaporation + diffusion**: `toFood` evaporates fast (the slow route fades and only
+  the heavily repainted one, the fast one, survives) and `toHome` slowly (it persists, so
+  carriers always have a way back). Ants are released **gradually**
+  (not in a wave), for a continuous flow and a stable trail.
 
-Por qué emerge la ruta rápida: se recorre más veces por minuto, recibe más feromona
-antes de evaporarse y se refuerza; la lenta se repasa menos y se apaga. Bola de nieve.
+Why the fast route emerges: it gets traveled more times per minute, receives more
+pheromone before evaporating and gets reinforced; the slow one is repainted less and
+dies out. Snowball effect.
 
-## Validación
+## Validation
 
-`headless-test.js` ejecuta el **mismo `core.js`** sin navegador y mide a lo largo del
-tiempo la feromona en el rodeo lento (arriba) frente al rápido (abajo):
+`headless-test.js` runs the **same `core.js`** without a browser and measures, over
+time, the pheromone on the slow detour (top) versus the fast one (bottom):
 
 ```
 node headless-test.js
 ```
 
-Resultado típico: la colonia converge a la **ruta rápida (~99%)** de forma consistente,
-con rastro fuerte y estable y entregas sostenidas.
+Typical result: the colony consistently converges on the **fast route (~99%)**,
+with a strong, stable trail and sustained deliveries.
 
-## Archivos
+## Files
 
-- `core.js` — toda la simulación (sin DOM). Se usa igual en el navegador y en el test.
-- `sim.js` — render en canvas (rastro a comida en verde, a casa en azul) e interfaz.
-- `index.html` / `style.css` — página y estilos.
-- `headless-test.js` — validación por línea de comandos.
+- `core.js` — the whole simulation (no DOM). Used as-is in the browser and in the test.
+- `sim.js` — canvas rendering (food trail in green, home trail in blue) and UI.
+- `index.html` / `style.css` — page and styles.
+- `headless-test.js` — command-line validation.
 
-## Nota
+## Note
 
-Como en las colonias reales, hay algo de azar (ruptura de simetría). La asimetría de
-terreno inclina la balanza hacia la ruta rápida de forma fiable, pero el sistema es
-estocástico, no determinista al 100%.
+As in real colonies, there's some randomness (symmetry breaking). The terrain asymmetry
+reliably tips the balance toward the fast route, but the system is
+stochastic, not 100% deterministic.
