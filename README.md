@@ -8,6 +8,8 @@ it **emerges** from the collective reinforcement of pheromones.
 It's an agent-to-agent system in a continuous world, from the family of classic
 foraging sims (Sebastian Lague style): two pheromones, decaying deposit, evaporation.
 
+**[▶ Live demo](https://sarfios20.github.io/ant-simulation/)** — runs right in your browser.
+
 ![screenshot](screenshot.png)
 
 ## How to run
