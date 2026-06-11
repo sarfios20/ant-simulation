@@ -160,8 +160,10 @@ document.getElementById('p-ants').addEventListener('input', e => {
 });
 
 document.getElementById('p-evap').addEventListener('input', e => {
-  CONFIG.EVAP = +e.target.value / 1000;
-  document.getElementById('v-evap').textContent = CONFIG.EVAP.toFixed(3);
+  // controls the to-food trail only: it's the knob that drives route optimization.
+  // toHome keeps its slow fixed rate so carriers can always find their way back.
+  CONFIG.EVAP_FOOD = +e.target.value / 1000;
+  document.getElementById('v-evap').textContent = CONFIG.EVAP_FOOD.toFixed(3);
 });
 
 document.getElementById('p-diff').addEventListener('input', e => {
