@@ -104,3 +104,17 @@ button:hover { background: #343a4c; }
 
 details summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 details p { color: var(--muted); font-size: 12px; margin-top: 10px; }
+
+/* Narrow screens (phones, portrait tablets): stack the canvas on top and the
+   panel below, instead of squeezing the canvas next to a fixed 320px sidebar. */
+@media (max-width: 760px) {
+  body { overflow: auto; height: auto; }
+  #app { flex-direction: column; height: auto; min-height: 100vh; }
+  #stage { height: 62vh; min-height: 300px; padding: 8px; }
+  #panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  #canvas { touch-action: none; }  /* let us paint without the page scrolling */
+}

@@ -116,6 +116,12 @@ canvas.addEventListener('mousedown', e => { drawing = true; paint(canvasPos(e));
 canvas.addEventListener('mousemove', e => { if (drawing) paint(canvasPos(e)); });
 window.addEventListener('mouseup', () => { drawing = false; });
 
+// touch (mobile): same brush, mapping the first touch like a mouse event.
+function touchPos(t) { return canvasPos(t.touches[0] || t.changedTouches[0]); }
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; paint(touchPos(e)); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (drawing) paint(touchPos(e)); }, { passive: false });
+window.addEventListener('touchend', () => { drawing = false; });
+
 // ---------------------------------------------------------------------------
 //  controls
 // ---------------------------------------------------------------------------
